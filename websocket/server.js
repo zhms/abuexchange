@@ -1,7 +1,6 @@
 const config = require('./config.js')
 const WebSocket = require('ws')
 const uuid = require('uuid')
-const spawn = require('child_process').spawn
 const wserver = new WebSocket.Server({ port: config.port })
 const sredis = require('redis').createClient({ url: `redis://:${config.redis.password}@${config.redis.host}:${config.redis.port}` })
 const predis = require('redis').createClient({ url: `redis://:${config.redis.password}@${config.redis.host}:${config.redis.port}` })
@@ -72,6 +71,10 @@ wserver.on('connection', (conn) => {
 					})
 				)
 			}
+		} else if (message.msgid == 'unsubscribe') {
+			topics[message.data] = topics[message.data] || new Set()
+			conn.topics.delete(message.data)
+			topics[message.data].delete(conn.uniqueid)
 		}
 	})
 })
@@ -95,34 +98,34 @@ publish = function (topic, data) {
 	})
 }
 function send_market_depth() {
-	for (let i = 0; i < config.symbols.length; i++) {
-		let symbol = config.symbols[i].replace('/', '')
-		if (config.depths[config.symbols[i]]) {
-			for (let k = 0; k < config.depths[config.symbols[i]].length; k++) {
-				let d = config.depths[config.symbols[i]][k]
-				let topic = `MarketDepth-${symbol}-${parseFloat(d)}`
-				let rediskey = `reptile:market:depth:${symbol}:${d}`
+	redis.hGetAll('reptile:config:depth:market').then((data) => {
+		for (let symbol in data) {
+			let levels = data[symbol].split('@')
+			for (let level in levels) {
+				level = levels[level]
+				let topic = `MarketDepth-${symbol}-${parseFloat(level)}`
+				let rediskey = `reptile:market:depth:${symbol}:${level}`
 				redis.get(rediskey).then((rdata) => {
 					publish(topic, JSON.parse(rdata))
 				})
 			}
 		}
-	}
+	})
 }
 function send_futures_depth() {
-	for (let i = 0; i < config.symbols.length; i++) {
-		let symbol = config.symbols[i].replace('/', '')
-		if (config.depths[config.symbols[i]]) {
-			for (let k = 0; k < config.depths[config.symbols[i]].length; k++) {
-				let d = config.depths[config.symbols[i]][k]
-				let topic = `FuturesDepth-${symbol}-${parseFloat(d)}`
-				let rediskey = `reptile:futures:depth:${symbol}:${d}`
+	redis.hGetAll('reptile:config:depth:futures').then((data) => {
+		for (let symbol in data) {
+			let levels = data[symbol].split('@')
+			for (let level in levels) {
+				level = levels[level]
+				let topic = `FuturesDepth-${symbol}-${parseFloat(level)}`
+				let rediskey = `reptile:futures:depth:${symbol}:${level}`
 				redis.get(rediskey).then((rdata) => {
 					publish(topic, JSON.parse(rdata))
 				})
 			}
 		}
-	}
+	})
 }
 server = function () {
 	sredis.subscribe('msg_to_client', (msg) => {
@@ -216,27 +219,5 @@ server = function () {
 		publish(topic, info)
 	})
 	setInterval(send_futures_depth, 1000)
-}
-{
-	let child = spawn('node', ['mdepth.js'])
-	child.stdout.setEncoding('utf8')
-	child.stderr.setEncoding('utf8')
-	child.stderr.on('data', function (data) {
-		process.stdout.write(data)
-	})
-	child.stdout.on('data', function (data) {
-		process.stdout.write(data)
-	})
-}
-{
-	let child = spawn('node', ['fdepth.js'])
-	child.stdout.setEncoding('utf8')
-	child.stderr.setEncoding('utf8')
-	child.stderr.on('data', function (data) {
-		process.stdout.write(data)
-	})
-	child.stdout.on('data', function (data) {
-		process.stdout.write(data)
-	})
 }
 console.log('*********************start*********************')
