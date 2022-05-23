@@ -32,7 +32,7 @@ import (
 )
 
 func get_config_int64(key string,invalval int64) int64{
-	val:=viper.GetInt64(key)
+	val := viper.GetInt64(key)
 	if val == invalval{
 		err:= fmt.Sprint("read config error:",key)
 		logs.Error(err)
@@ -146,7 +146,7 @@ func Init(){
 	viper.AddConfigPath("./config")
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	err:=viper.ReadInConfig()
+	err := viper.ReadInConfig()
 	if err != nil {
 		logs.Error(err)
 		return

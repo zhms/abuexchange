@@ -1,0 +1,9 @@
+server:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: Ho9mpyeqaILEOfjM
+    db: 0
+  symbols: [btc/usdt, eth/usdt] #, eth/usdt
+  marketurl: wss://stream.binance.com/stream
+  futuresurl: wss://fstream.binance.com/stream
