@@ -24,7 +24,7 @@ walkSync('./', function (filePath, stat) {
 	}
 })
 let child
-child = spawn('go', ['run', 'main.go'])
+child = spawn('go', ['run', 'reptile.go'])
 child.stdout.setEncoding('utf8')
 child.stderr.setEncoding('utf8')
 child.stderr.on('data', function (data) {
@@ -41,4 +41,4 @@ setInterval(() => {
 		}
 	}
 }, 200)
-                                                                                                                                                                                                                                                                                                                         
+                

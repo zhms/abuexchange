@@ -3,9 +3,11 @@ package main
 import (
 	"exreptile/reptile"
 	"fmt"
+	"math/rand"
 	"time"
 )
 func main() {
+	rand.Seed(time.Now().Unix())
 	reptile.ConfigInit()
 
 	go reptile.MarketKLine()

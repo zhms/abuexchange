@@ -17,8 +17,8 @@ func MarketDepth() {
 	for i := 0; i < len(Symbols); i++ {
 		symbol := Symbols[i]
 		redisconn := RedisPool.Get()
-		//redisconn.Do("del",fmt.Sprint("reptile:market:depth:",strings.Replace(symbol, "/", "", -1),":asks"))
-		//redisconn.Do("del",fmt.Sprint("reptile:market:depth:",strings.Replace(symbol, "/", "", -1),":bids"))
+		redisconn.Do("del",fmt.Sprint("reptile:market:depth:",strings.Replace(symbol, "/", "", -1),":asks"))
+		redisconn.Do("del",fmt.Sprint("reptile:market:depth:",strings.Replace(symbol, "/", "", -1),":bids"))
 		redisconn.Close()
 		go market_depth(symbol)
 	}
@@ -156,7 +156,7 @@ func market_depth_deal(symbol string){
 				price := math.Floor(parrasks[k].Price * math.Pow(10,float64(dec)))
 				price = math.Floor(math.Floor(price / d) * d)
 				price = price / math.Pow(10, float64(dec))
-				mapasks[price] = parrasks[k].Amount
+				mapasks[price] += parrasks[k].Amount
 			}
 			mapbids := make(map[float64]float64)
 			for k := 0; k < len(parrbids); k++ {
@@ -164,7 +164,7 @@ func market_depth_deal(symbol string){
 				price := math.Floor(parrbids[k].Price * math.Pow(10,float64(dec)))
 				price = math.Floor(math.Floor(price / d) * d)
 				price = price / math.Pow(10, float64(dec))
-				mapbids[price] = parrbids[k].Amount
+				mapbids[price] += parrbids[k].Amount
 			}
 			publishdata := marketdepthleveldata{}
 			for k, v := range mapasks {
@@ -182,7 +182,7 @@ func market_depth_deal(symbol string){
 			publishdatafinal := marketdepthleveldata{}
 			for i := 0; i < len(publishdata.Asks); i++ {
 				publishdatafinal.Asks = append(publishdatafinal.Asks, publishdata.Asks[i])
-				if i >= 30{ break }
+				if i >= 30 { break }
 			}
 			for i := 0; i < len(publishdata.Bids); i++ {
 				publishdatafinal.Bids = append(publishdatafinal.Bids, publishdata.Bids[i])

@@ -17,8 +17,8 @@ func FuturesDepth() {
 	for i := 0; i < len(Symbols); i++ {
 		symbol := Symbols[i]
 		redisconn := RedisPool.Get()
-		//redisconn.Do("del",fmt.Sprint("reptile:futures:depth:",strings.Replace(symbol, "/", "", -1),":asks"))
-		//redisconn.Do("del",fmt.Sprint("reptile:futures:depth:",strings.Replace(symbol, "/", "", -1),":bids"))
+		redisconn.Do("del",fmt.Sprint("reptile:futures:depth:",strings.Replace(symbol, "/", "", -1),":asks"))
+		redisconn.Do("del",fmt.Sprint("reptile:futures:depth:",strings.Replace(symbol, "/", "", -1),":bids"))
 		redisconn.Close()
 		go futures_depth(symbol)
 	}
@@ -155,7 +155,7 @@ func futures_depth_deal(symbol string){
 				price := math.Floor(parrasks[k].Price * math.Pow(10,float64(dec)))
 				price = math.Floor(math.Floor(price / d) * d)
 				price = price / math.Pow(10, float64(dec))
-				mapasks[price] = parrasks[k].Amount
+				mapasks[price] += parrasks[k].Amount
 			}
 			mapbids := make(map[float64]float64)
 			for k := 0; k < len(parrbids); k++ {
@@ -163,7 +163,7 @@ func futures_depth_deal(symbol string){
 				price := math.Floor(parrbids[k].Price * math.Pow(10,float64(dec)))
 				price = math.Floor(math.Floor(price / d) * d)
 				price = price / math.Pow(10, float64(dec))
-				mapbids[price] = parrbids[k].Amount
+				mapbids[price] += parrbids[k].Amount
 			}
 			publishdata := futuresdepthleveldata{}
 			for k, v := range mapasks {
