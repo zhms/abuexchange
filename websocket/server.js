@@ -8,6 +8,21 @@ const redis = require('redis').createClient({ url: `redis://:${config.redis.pass
 process.on('uncaughtException', function (err) {
 	console.log(err)
 })
+let intervals = ['1m', '3m', '5m', '15m', '30m', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M']
+let intervalseconds = {}
+intervalseconds['1m'] = 60
+intervalseconds['3m'] = 60 * 3
+intervalseconds['5m'] = 60 * 5
+intervalseconds['15m'] = 60 * 15
+intervalseconds['30m'] = 60 * 30
+intervalseconds['2h'] = 60 * 60 * 2
+intervalseconds['4h'] = 60 * 60 * 4
+intervalseconds['6h'] = 60 * 60 * 6
+intervalseconds['8h'] = 60 * 60 * 8
+intervalseconds['12h'] = 60 * 60 * 12
+intervalseconds['1d'] = 60 * 60 * 24
+intervalseconds['3d'] = 60 * 60 * 24 * 3
+intervalseconds['1w'] = 60 * 60 * 24 * 7
 let id = 1
 let server
 let connections = {}
@@ -75,6 +90,108 @@ wserver.on('connection', (conn) => {
 			topics[message.data] = topics[message.data] || new Set()
 			conn.topics.delete(message.data)
 			topics[message.data].delete(conn.uniqueid)
+		} else if (message.msgid == 'get') {
+			let data = message.data.split('-')
+			if (data.length < 3) return
+			let KlineType = data[0]
+			let symbol = data[1]
+			let interval = data[2]
+			if (interval == '1M') {
+				if (KlineType == 'MarketKlineHistory') {
+					redis.HGETALL(`reptile:market:kline:${symbol.replace('/', '')}:${interval}`).then((kdata) => {
+						var keys = []
+						for (var i in kdata) {
+							keys.push(i)
+						}
+						keys.sort((a, b) => {
+							return parseInt(b) - parseInt(a)
+						})
+						var senddata = []
+						for (var i = 0; i < keys.length; i++) {
+							senddata.push(JSON.parse(kdata[keys[i]]))
+						}
+						conn.send(
+							JSON.stringify({
+								msgid: `${KlineType}-${symbol}-${interval}`,
+								data: senddata,
+							})
+						)
+					})
+				} else if (KlineType == 'FuturesKlineHistory') {
+					redis.HGETALL(`reptile:futures:kline:${symbol.replace('/', '')}:${interval}`).then((kdata) => {
+						var keys = []
+						for (var i in kdata) {
+							keys.push(i)
+						}
+						keys.sort((a, b) => {
+							return parseInt(b) - parseInt(a)
+						})
+						var senddata = []
+						for (var i = 0; i < keys.length; i++) {
+							senddata.push(JSON.parse(kdata[keys[i]]))
+						}
+						conn.send(
+							JSON.stringify({
+								msgid: `${KlineType}-${symbol}-${interval}`,
+								data: senddata,
+							})
+						)
+					})
+				}
+				return
+			}
+			let startid = data[3]
+			let seconds = intervalseconds[interval]
+			if (!seconds) return
+			if (KlineType == 'MarketKlineHistory') {
+				let lastkey = `reptile:market:kline:${symbol.replace('/', '')}:${interval}:lastid`
+				redis.get(lastkey).then((lastid) => {
+					if (!lastid) return
+					if (!startid) startid = lastid
+					let ids = []
+					for (let i = 0; i < 200; i++) {
+						ids.push(`${startid - seconds * i}`)
+					}
+					redis.HMGET(`reptile:market:kline:${symbol.replace('/', '')}:${interval}`, ids).then((kdata) => {
+						let senddata = []
+						for (let i = 0; i < kdata.length; i++) {
+							if (kdata[i]) {
+								senddata.push(JSON.parse(kdata[i]))
+							}
+						}
+						conn.send(
+							JSON.stringify({
+								msgid: `${KlineType}-${symbol}-${interval}`,
+								data: senddata,
+							})
+						)
+					})
+				})
+			} else if (KlineType == 'FuturesKlineHistory') {
+				let lastkey = `reptile:futures:kline:${symbol.replace('/', '')}:${interval}:lastid`
+				redis.get(lastkey).then((lastid) => {
+					if (!lastid) return
+					if (!startid) startid = lastid
+					let ids = []
+					for (let i = 0; i < 200; i++) {
+						ids.push(`${startid - seconds * i}`)
+					}
+					redis.HMGET(`reptile:futures:kline:${symbol.replace('/', '')}:${interval}`, ids).then((kdata) => {
+						let senddata = []
+						for (let i = 0; i < kdata.length; i++) {
+							if (kdata[i]) {
+								senddata.push(JSON.parse(kdata[i]))
+							}
+						}
+						conn.send(
+							JSON.stringify({
+								msgid: `${KlineType}-${symbol}-${interval}`,
+								data: senddata,
+							})
+						)
+					})
+				})
+			}
 		}
 	})
 })
