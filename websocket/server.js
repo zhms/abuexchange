@@ -150,7 +150,7 @@ wserver.on('connection', (conn) => {
 					if (!startid) startid = lastid
 					let ids = []
 					for (let i = 0; i < 200; i++) {
-						ids.push(`${startid - seconds * i}`)
+						ids.push(`${startid - seconds * (i + 1)}`)
 					}
 					redis.HMGET(`reptile:market:kline:${symbol.replace('/', '')}:${interval}`, ids).then((kdata) => {
 						let senddata = []
@@ -174,7 +174,7 @@ wserver.on('connection', (conn) => {
 					if (!startid) startid = lastid
 					let ids = []
 					for (let i = 0; i < 200; i++) {
-						ids.push(`${startid - seconds * i}`)
+						ids.push(`${startid - seconds * (i + 1)}`)
 					}
 					redis.HMGET(`reptile:futures:kline:${symbol.replace('/', '')}:${interval}`, ids).then((kdata) => {
 						let senddata = []
