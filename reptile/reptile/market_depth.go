@@ -213,7 +213,7 @@ func market_depth_delete(symbol string){
 			sort.Slice(strasks, func(i, j int) bool {
 				a,_ := strconv.ParseFloat(strasks[i],64)
 				b,_ := strconv.ParseFloat(strasks[j],64)
-				return  a < b
+				return  a > b
 			})
 			for i := 0; i < len(strasks); i++ {
 				if i > 5000 {
@@ -233,7 +233,7 @@ func market_depth_delete(symbol string){
 			sort.Slice(strbids, func(i, j int) bool {
 				a,_ := strconv.ParseFloat(strbids[i],64)
 				b,_ := strconv.ParseFloat(strbids[j],64)
-				return  a > b
+				return  a < b
 			})
 			for i := 0; i < len(strbids); i++ {
 				if i > 5000 {
