@@ -11,6 +11,9 @@ func main() {
     rand.Seed(time.Now().Unix())
 	server.Init()
 	new(controller.UserController).Init()
+
+
+
 	server.Run()
 }
 
