@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"xserver/abugo"
 
 	"github.com/spf13/viper"
@@ -15,8 +16,8 @@ var websocket * abugo.AbuWebsocket
 var debug bool = false
 
 func Init() {
-	debug = viper.GetBool("server.debug")
 	abugo.Init()
+	debug = viper.GetBool("server.debug")
 	http =  new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
 	redis = new(abugo.AbuRedis)
@@ -37,8 +38,6 @@ func Init() {
 			gropu.PostNoAuth("/login",user_login)
 		}
 	}
-
-
 }
 
 func Http() *abugo.AbuHttp {
@@ -132,6 +131,7 @@ func user_login(ctx *abugo.AbuHttpContent) {
 		ctx.RespErr(-7,"角色已被禁用")
 		return
 	}
+	fmt.Println(debug)
 	if !debug && len(googlesecret) > 0 && !abugo.VerifyGoogleCode(googlesecret,reqdata.VerifyCode) {
 		ctx.RespErr(-10,"验证码不正确")
 		return
