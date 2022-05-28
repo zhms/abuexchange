@@ -29,8 +29,7 @@ type asset_data struct{
 }
 func (c *AssetController) list(ctx *abugo.AbuHttpContent) {
 	token := server.GetToken(ctx)
-	dbconn := server.Db().Conn()
-	queryresult,err := dbconn.Query("select Symbol,AssetType,AssetAmt,FrozenAmt from ex_asset where userid = ?",token.UserId)
+	queryresult,err := server.Db().Conn().Query("select Symbol,AssetType,AssetAmt,FrozenAmt from ex_asset where userid = ?",token.UserId)
 	if err != nil {
 		ctx.RespErr(-2,err.Error())
 		return

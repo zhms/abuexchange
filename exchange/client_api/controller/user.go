@@ -132,3 +132,4 @@ func (c *UserController) login_verifycode(ctx *abugo.AbuHttpContent) {
 	ctx.Put("Token",dbresult.NewToken)
 	ctx.RespOK()
 }
+///////////////////////////////////////////////////////////////////////
