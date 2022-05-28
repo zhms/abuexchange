@@ -3,16 +3,12 @@ package controller
 import (
 	"xserver/abugo"
 	"xserver/server"
-
-	"github.com/spf13/viper"
 )
 
 type AssetController struct {
-	debug bool
 }
 
 func (c *AssetController) Init() {
-	c.debug = viper.GetBool("server.debug")
 	gropu := server.Http().NewGroup("/asset")
 	{
 		gropu.Post("/list",c.list)

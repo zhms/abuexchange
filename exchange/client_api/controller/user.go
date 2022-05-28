@@ -7,7 +7,6 @@ import (
 
 type UserController struct {
 }
-
 func (c *UserController) Init() {
 	gropu := server.Http().NewGroup("/user")
 	{

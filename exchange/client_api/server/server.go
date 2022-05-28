@@ -3,14 +3,18 @@ package server
 import (
 	"encoding/json"
 	"xserver/abugo"
+
+	"github.com/spf13/viper"
 )
 
 var http* abugo.AbuHttp
 var redis* abugo.AbuRedis
 var db *abugo.AbuDb
 var websocket * abugo.AbuWebsocket
+var debug bool = false
 
 func Init() {
+	debug = viper.GetBool("server.debug")
 	abugo.Init()
 	http =  new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
@@ -32,9 +36,14 @@ func Db() *abugo.AbuDb{
 	return db
 }
 
+func Debug() bool{
+	return debug
+}
+
 func Run(){
 	abugo.Run()
 }
+
 
 type TokenData struct{
 	UserId int
