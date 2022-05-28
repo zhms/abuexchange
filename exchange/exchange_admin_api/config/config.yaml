@@ -1,5 +1,5 @@
 server:
-  debug: 1
+  debug: true
   snowflakenode: 1 #分布式id生成器节点
   http:
     http:

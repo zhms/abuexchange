@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"xserver/abugo"
 
 	"github.com/spf13/viper"
@@ -131,7 +130,6 @@ func user_login(ctx *abugo.AbuHttpContent) {
 		ctx.RespErr(-7,"角色已被禁用")
 		return
 	}
-	fmt.Println(debug)
 	if !debug && len(googlesecret) > 0 && !abugo.VerifyGoogleCode(googlesecret,reqdata.VerifyCode) {
 		ctx.RespErr(-10,"验证码不正确")
 		return
