@@ -122,9 +122,7 @@ func (c *UserController) login_verifycode(ctx *abugo.AbuHttpContent) {
 	tokendata := server.TokenData{}
 	tokendata.UserId = dbresult.UserId
 	tokendata.SellerId = dbresult.SellerId
-	if len(dbresult.OldToken) > 0{
-		server.Http().DelToken(dbresult.OldToken)
-	}
+	if len(dbresult.OldToken) > 0 { server.Http().DelToken(dbresult.OldToken) }
 	server.Http().SetToken(dbresult.NewToken,tokendata)
 	ctx.Put("UserId",dbresult.UserId)
 	ctx.Put("SellerId",dbresult.SellerId)

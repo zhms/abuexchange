@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-
 	server.Init()
 	new(controller.VerifyController).Init()
 	new(controller.UserController).Init()

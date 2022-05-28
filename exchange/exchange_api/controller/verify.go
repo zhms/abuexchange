@@ -35,9 +35,7 @@ func (c *VerifyController) send(ctx *abugo.AbuHttpContent) {
 	VerifyCode := fmt.Sprint(rand.Intn(999999-100000)+100000)
 	sql := "replace into ex_verify(Account,SellerId,UseType,VerifyCode)values(?,?,?,?)"
 	server.Db().Conn().Query(sql,reqdata.Account,reqdata.SellerId,reqdata.UseType,VerifyCode)
-	if server.Debug() {
-		ctx.Put("VerifyCode",VerifyCode)
-	}
+	if server.Debug() { ctx.Put("VerifyCode",VerifyCode) }
 	ctx.RespOK()
 }
 /////////////////////////////////////////////////////////////////////////
