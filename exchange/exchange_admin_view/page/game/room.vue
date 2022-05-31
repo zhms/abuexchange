@@ -4,7 +4,7 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="游戏:">
-					<el-select v-model="filters.GameId" placeholder="请选择" style="width:150px;margin-right: 10px;">
+					<el-select v-model="filters.GameId" placeholder="请选择" style="width: 150px; margin-right: 10px">
 						<el-option v-for="item in games" :key="item.GameName" :label="item.GameName" :value="item.GameId"> </el-option>
 					</el-select>
 					<el-form-item>
@@ -49,7 +49,7 @@
 			<el-dialog :title="dialog_title" :visible.sync="dialog" width="400px" center>
 				<el-form :inline="true" label-width="100px">
 					<el-form-item label="游戏:">
-						<el-select v-model="dialog_data.GameId" placeholder="请选择" style="width:200px;margin-right: 10px;" :disabled="dialog_title != '添加房间'">
+						<el-select v-model="dialog_data.GameId" placeholder="请选择" style="width: 200px; margin-right: 10px" :disabled="dialog_title != '添加房间'">
 							<el-option v-for="item in games_add" :key="item.GameName" :label="item.GameName" :value="item.GameId"> </el-option>
 						</el-select>
 					</el-form-item>
@@ -145,7 +145,7 @@ export default {
 	components: { LongHuDaZhanRoomConfig },
 	computed: {},
 	created() {
-		app.getInstance().post('/game/game/query', {}, (games) => {
+		app.post('/game/game/query', {}, (games) => {
 			this.games = [{ GameName: '全部', GameId: null }]
 			for (var i = 0; i < games.length; i++) {
 				var v = { GameName: games[i].GameName, GameId: games[i].GameId }
@@ -156,7 +156,7 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('游戏管理', '房间列表', o)
+			return app.auth2('游戏管理', '房间列表', o)
 		},
 		configShow(name, callback) {
 			this.config_show[name] = callback
@@ -166,12 +166,12 @@ export default {
 		},
 		handleConfig(index) {
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.config_title = this.dialog_data.name + '配置'
 			if (this.config_show[this.dialog_data.gameid]) this.config_show[this.dialog_data.gameid](this.dialog_data)
 		},
 		handleQuery() {
-			app.getInstance().post('/game/room/query', this.filters, (result) => {
+			app.post('/game/room/query', this.filters, (result) => {
 				this.table_data = result.rdata
 				this.robot = result.rcdata
 			})
@@ -185,7 +185,7 @@ export default {
 		handleModify(index) {
 			this.current_row = index
 			this.dialog_title = '修改房间'
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.dialog_radio = '0'
 			if (this.dialog_data.tag == null) {
 				this.dialog_data.tag = ''
@@ -200,7 +200,7 @@ export default {
 		},
 		handleDel(index) {
 			if (confirm('确定删除该房间?')) {
-				app.getInstance().post('/game/room/delete', { GameId: this.table_data[index].GameId, RoomLevel: this.table_data[index].RoomLevel }, () => {
+				app.post('/game/room/delete', { GameId: this.table_data[index].GameId, RoomLevel: this.table_data[index].RoomLevel }, () => {
 					this.table_data.splice(index, 1)
 				})
 			}
@@ -208,8 +208,8 @@ export default {
 		handleConfirm() {
 			if (this.dialog_title == '添加房间') {
 				if (!this.dialog_data.IsDisabled) this.dialog_data.IsDisabled = 0
-				app.getInstance().post('/game/room/add', this.dialog_data, (result) => {
-					this.table_data.push(app.getInstance().clone(this.dialog_data))
+				app.post('/game/room/add', this.dialog_data, (result) => {
+					this.table_data.push(app.clone(this.dialog_data))
 					this.dialog = false
 					this.$message.success('操作成功')
 				})
@@ -224,17 +224,17 @@ export default {
 					if (this.dialog_data.RoomTag.length > 0) this.dialog_data.RoomTag += ','
 					this.dialog_data.RoomTag += 'hot'
 				}
-				app.getInstance().post('/game/room/modify', this.dialog_data, (result) => {
-					this.table_data[this.current_row] = app.getInstance().clone(this.dialog_data)
+				app.post('/game/room/modify', this.dialog_data, (result) => {
+					this.table_data[this.current_row] = app.clone(this.dialog_data)
 					this.dialog = false
 					this.$message.success('操作成功')
 				})
 			}
 			if (this.dialog_title.indexOf('编辑机器人') >= 0) {
-				app.getInstance().post('/game/room/robot', this.dialog_robot_data, (result) => {
+				app.post('/game/room/robot', this.dialog_robot_data, (result) => {
 					for (var i = 0; i < this.robot.length; i++) {
 						if (this.robot[i].GameId == this.table_data[this.current_row].GameId && this.robot[i].RoomLevel == this.table_data[this.current_row].RoomLevel) {
-							this.robot[i] = app.getInstance().clone(this.dialog_robot_data)
+							this.robot[i] = app.clone(this.dialog_robot_data)
 						}
 					}
 					this.dialog_robot = false
@@ -247,7 +247,7 @@ export default {
 					level: this.table_data[this.current_row].level,
 					config: this.dialog_config_data,
 				}
-				app.getInstance().post('/game/room/config', data, (result) => {
+				app.post('/game/room/config', data, (result) => {
 					this.table_data[this.current_row].config = this.dialog_config_data
 					this.dialog_config = false
 				})
@@ -256,7 +256,7 @@ export default {
 		handleModifyConfig(index) {
 			this.current_row = index
 			this.dialog_title = '房间配置'
-			this.dialog_config_data = app.getInstance().clone(this.table_data[index]).config
+			this.dialog_config_data = app.clone(this.table_data[index]).config
 			this.dialog_config = true
 		},
 		handleModifyRobot(index) {
@@ -265,7 +265,7 @@ export default {
 			this.dialog_robot_data = { GameId: this.table_data[index].GameId, RoomLevel: this.table_data[index].RoomLevel }
 			for (var i = 0; i < this.robot.length; i++) {
 				if (this.robot[i].GameId == this.table_data[index].GameId && this.robot[i].RoomLevel == this.table_data[index].RoomLevel) {
-					this.dialog_robot_data = app.getInstance().clone(this.robot[i])
+					this.dialog_robot_data = app.clone(this.robot[i])
 				}
 			}
 			this.dialog_robot = true

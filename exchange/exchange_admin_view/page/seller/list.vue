@@ -67,7 +67,7 @@ export default {
 	},
 	methods: {
 		handleQuery() {
-			app.getInstance().post('/seller/list/query', {}, (result) => {
+			app.post('/seller/list/query', {}, (result) => {
 				this.table_data = result
 			})
 		},
@@ -79,28 +79,28 @@ export default {
 		handleModify(index) {
 			this.dialog_title = '修改运营商'
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.dialog = true
 		},
 		handleConfirm() {
 			if (this.dialog_title == '添加运营商') {
-				app.getInstance().post('/seller/list/add', this.dialog_data, (result) => {
+				app.post('/seller/list/add', this.dialog_data, (result) => {
 					this.table_data.push(this.dialog_data)
-					this.table_data = app.getInstance().clone(this.table_data)
+					this.table_data = app.clone(this.table_data)
 					this.dialog = false
 				})
 			}
 			if (this.dialog_title == '修改运营商') {
-				app.getInstance().post('/seller/list/modify', this.dialog_data, (result) => {
+				app.post('/seller/list/modify', this.dialog_data, (result) => {
 					this.table_data[this.current_row] = this.dialog_data
-					this.table_data = app.getInstance().clone(this.table_data)
+					this.table_data = app.clone(this.table_data)
 					this.dialog = false
 				})
 			}
 		},
 		handleDelete(index) {
 			if (confirm('确定删除该运营商?')) {
-				app.getInstance().post('/seller/list/delete', { id: this.table_data[index].id }, (result) => {
+				app.post('/seller/list/delete', { id: this.table_data[index].id }, (result) => {
 					this.table_data.splice(index, 1)
 				})
 			}

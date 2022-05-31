@@ -151,10 +151,10 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('游戏管理', '游戏列表', o)
+			return app.auth2('游戏管理', '游戏列表', o)
 		},
 		handleQuery() {
-			app.getInstance().post('/game/game/query', {}, (result) => {
+			app.post('/game/game/query', {}, (result) => {
 				this.table_data = result
 			})
 		},
@@ -165,7 +165,7 @@ export default {
 		},
 		handleModify(index) {
 			this.modify_or_new.title = '修改游戏'
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.current_row = index
 			this.modify_or_new.radio = '0'
 			this.modify_or_new.bigicon = 0
@@ -185,14 +185,14 @@ export default {
 		},
 		handleDel(index) {
 			if (confirm('确定删除该游戏?')) {
-				app.getInstance().post('/game/game/delete', { GameId: this.table_data[index].GameId }, () => {
+				app.post('/game/game/delete', { GameId: this.table_data[index].GameId }, () => {
 					this.table_data.splice(index, 1)
 				})
 			}
 		},
 		handleRobot(index) {
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.robot_title = this.dialog_data.GameName + '机器人配置'
 			if (this.robot_show[this.dialog_data.GameId]) {
 				this.robot_show[this.dialog_data.GameId](this.dialog_data)
@@ -202,7 +202,7 @@ export default {
 		},
 		handleConfig(index) {
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.config_title = this.dialog_data.GameName + '配置'
 			if (this.config_show[this.dialog_data.GameId]) {
 				this.config_show[this.dialog_data.GameId](this.dialog_data)
@@ -212,7 +212,7 @@ export default {
 		},
 		handleControl(index) {
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.control_title = this.dialog_data.GameName + '控制'
 			if (this.control_show[this.dialog_data.GameId]) {
 				this.control_show[this.dialog_data.GameId](this.dialog_data)
@@ -251,8 +251,8 @@ export default {
 					if (this.dialog_data.GameTag.length > 0) this.dialog_data.GameTag += ','
 					this.dialog_data.GameTag += 'hot'
 				}
-				app.getInstance().post('/game/game/add', this.dialog_data, (result) => {
-					this.table_data.push(app.getInstance().clone(this.dialog_data))
+				app.post('/game/game/add', this.dialog_data, (result) => {
+					this.table_data.push(app.clone(this.dialog_data))
 					this.modify_or_new.show = false
 					this.$message.success('操作成功')
 				})
@@ -271,8 +271,8 @@ export default {
 					if (this.dialog_data.GameTag.length > 0) this.dialog_data.GameTag += ','
 					this.dialog_data.GameTag += 'hot'
 				}
-				app.getInstance().post('/game/game/modify', this.dialog_data, (result) => {
-					this.table_data[this.current_row] = app.getInstance().clone(this.dialog_data)
+				app.post('/game/game/modify', this.dialog_data, (result) => {
+					this.table_data[this.current_row] = app.clone(this.dialog_data)
 					this.modify_or_new.show = false
 					this.$message.success('操作成功')
 				})

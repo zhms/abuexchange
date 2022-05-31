@@ -4,7 +4,7 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="筛选:">
-					<el-input v-model="filters.userid" style="width:200px" :clearable="true" placeholder="玩家id"></el-input>
+					<el-input v-model="filters.userid" style="width: 200px" :clearable="true" placeholder="玩家id"></el-input>
 				</el-form-item>
 				<el-form-item label="时间:">
 					<el-date-picker v-model="query_time" type="datetimerange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"> </el-date-picker>
@@ -19,16 +19,16 @@
 				<el-table-column align="center" prop="RecordTime" label="记录时间" width="160"></el-table-column>
 				<el-table-column align="center" prop="ChangeScore" label="变化金币" width="120">
 					<template slot-scope="scope">
-						<span v-if="score_data[scope.$index].ChangeScore > 0" style="color: rgb(255,0,0)">{{ score_data[scope.$index].ChangeScore }}</span>
-						<span v-else style="color: rgb(52,180,83)">{{ score_data[scope.$index].ChangeScore }}</span>
+						<span v-if="score_data[scope.$index].ChangeScore > 0" style="color: rgb(255, 0, 0)">{{ score_data[scope.$index].ChangeScore }}</span>
+						<span v-else style="color: rgb(52, 180, 83)">{{ score_data[scope.$index].ChangeScore }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column align="center" prop="BeforeScore" label="变化前金币" width="120"></el-table-column>
 				<el-table-column align="center" prop="AfterScore" label="变化后金币" width="120"></el-table-column>
 				<el-table-column align="center" prop="ChangeBankScore" label="变化银行金币" width="120">
 					<template slot-scope="scope">
-						<span v-if="score_data[scope.$index].ChangeBankScore > 0" style="color: rgb(255,0,0)">{{ score_data[scope.$index].ChangeBankScore }}</span>
-						<span v-else style="color: rgb(52,180,83)">{{ score_data[scope.$index].ChangeBankScore }}</span>
+						<span v-if="score_data[scope.$index].ChangeBankScore > 0" style="color: rgb(255, 0, 0)">{{ score_data[scope.$index].ChangeBankScore }}</span>
+						<span v-else style="color: rgb(52, 180, 83)">{{ score_data[scope.$index].ChangeBankScore }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column align="center" prop="BeforeBankScore" label="变化前银行金币" width="120"></el-table-column>
@@ -38,7 +38,7 @@
 			</el-table>
 		</div>
 		<div class="pagination">
-			<el-pagination style="margin-top:5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="score_total" @current-change="handleQuery" :page-size="score_pagesize"></el-pagination>
+			<el-pagination style="margin-top: 5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="score_total" @current-change="handleQuery" :page-size="score_pagesize"></el-pagination>
 		</div>
 	</div>
 </template>
@@ -64,7 +64,7 @@ export default {
 	created() {},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('玩家管理', '金流记录', o)
+			return app.auth2('玩家管理', '金流记录', o)
 		},
 		handleQuery(page) {
 			var reqdata = {
@@ -77,7 +77,7 @@ export default {
 				reqdata.endtime = this.$moment(this.query_time[1]).format('YYYY-MM-DD hh:mm:ss')
 			}
 			console.log(reqdata)
-			app.getInstance().post('/user/scorelist/query', reqdata, (result) => {
+			app.post('/user/scorelist/query', reqdata, (result) => {
 				this.score_data = result.data
 				this.score_total = result.total
 				for (var i = 0; i < this.score_data.length; i++) {

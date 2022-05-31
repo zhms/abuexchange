@@ -71,7 +71,7 @@ export default {
 				level: this.dialog_data.level,
 				config: JSON.stringify(this.config),
 			}
-			app.getInstance().post('/game/room/config', data, () => {
+			app.post('/game/room/config', data, () => {
 				this.confirm(data.config)
 				this.$message.success('操作成功')
 				this.dialog = false

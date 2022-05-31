@@ -13,7 +13,7 @@ server:
     maxactive: 100 #最大的激活连接数，表示同时最多有N个连接
     idletimeout: 60 #最大的空闲连接等待时间，超过此时间后，空闲连接将被关闭
     prefix: token:exchange
-    lifetime: 40320 #token过期时长
+    lifetime: 2592000 #token过期时长
   redis:
     host: 127.0.0.1
     port: 6379

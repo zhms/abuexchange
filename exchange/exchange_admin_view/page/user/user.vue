@@ -4,7 +4,7 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="筛选:">
-					<el-input v-model="filters.userid_or_account" style="width:200px" :clearable="true" placeholder="玩家id | 账号"></el-input>
+					<el-input v-model="filters.userid_or_account" style="width: 200px" :clearable="true" placeholder="玩家id | 账号"></el-input>
 				</el-form-item>
 				<el-form-item>
 					<el-button type="primary" v-on:click="handleQuery">查询</el-button>
@@ -20,7 +20,7 @@
 				<el-table-column align="center" prop="Account" label="账号" width="120"></el-table-column>
 				<el-table-column align="center" label="昵称" width="130">
 					<template slot-scope="scope">
-						<span style="cursor: pointer;color: rgb(64,158,255)" @click="handleLook(scope.$index)">{{ table_data[scope.$index].NickName }}</span>
+						<span style="cursor: pointer; color: rgb(64, 158, 255)" @click="handleLook(scope.$index)">{{ table_data[scope.$index].NickName }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column align="center" prop="Score" label="金币" width="120"></el-table-column>
@@ -32,46 +32,46 @@
 			</el-table>
 		</div>
 		<div class="pagination">
-			<el-pagination style="margin-top:5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="total" @current-change="handleQuery" :page-size="pagesize"></el-pagination>
+			<el-pagination style="margin-top: 5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="total" @current-change="handleQuery" :page-size="pagesize"></el-pagination>
 		</div>
 		<!--对话框-->
 		<div>
 			<el-dialog :title="dialog_title" :visible.sync="dialog" width="1400px" top="2vh">
 				<el-tabs v-model="activeName" type="card" center width="500px" @tab-click="handleSelectTab">
 					<el-tab-pane label="基础信息" name="0">
-						<div style="height: 70vh;overflow: auto;">
+						<div style="height: 70vh; overflow: auto">
 							<el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:30px">
+								<el-form :inline="true" label-width="130px" style="margin-left: 30px">
 									<el-form-item label=" "></el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="玩家ID:" style="width:200px;margin-top:-15px">{{ dialog_data.UserId }}</el-form-item>
-									<el-form-item label="代理:" style="width:200px;margin-top:-15px">{{ dialog_data.Agent }}</el-form-item>
-									<el-form-item label="注册来源:" style="width:200px;margin-top:-15px">{{ dialog_data.RegOs }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="玩家ID:" style="width: 200px; margin-top: -15px">{{ dialog_data.UserId }}</el-form-item>
+									<el-form-item label="代理:" style="width: 200px; margin-top: -15px">{{ dialog_data.Agent }}</el-form-item>
+									<el-form-item label="注册来源:" style="width: 200px; margin-top: -15px">{{ dialog_data.RegOs }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="运营商:" style="width:200px;margin-top:-15px">{{ dialog_data.SellerId }}</el-form-item>
-									<el-form-item label="状态:" v-bind:class="dialog_data.IsDisabled ? 'red' : ''" style="width:200px;margin-top:-15px">{{ dialog_data.IsDisabled == 1 ? '禁用' : '正常' }}</el-form-item>
-									<el-form-item label="登录次数:" style="width:300px;margin-top:-15px">{{ dialog_data.LoginCount }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="运营商:" style="width: 200px; margin-top: -15px">{{ dialog_data.SellerId }}</el-form-item>
+									<el-form-item label="状态:" v-bind:class="dialog_data.IsDisabled ? 'red' : ''" style="width: 200px; margin-top: -15px">{{ dialog_data.IsDisabled == 1 ? '禁用' : '正常' }}</el-form-item>
+									<el-form-item label="登录次数:" style="width: 300px; margin-top: -15px">{{ dialog_data.LoginCount }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="账号:" style="width:200px;margin-top:-15px">{{ dialog_data.Account }}</el-form-item>
-									<el-form-item label="测试:" v-bind:class="dialog_data.IsTester ? 'red' : ''" style="width:200px;margin-top:-15px">{{ dialog_data.IsTester == 0 ? '否' : '是' }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="账号:" style="width: 200px; margin-top: -15px">{{ dialog_data.Account }}</el-form-item>
+									<el-form-item label="测试:" v-bind:class="dialog_data.IsTester ? 'red' : ''" style="width: 200px; margin-top: -15px">{{ dialog_data.IsTester == 0 ? '否' : '是' }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="昵称:" style="width:200px;margin-top:-15px">{{ dialog_data.NickName }}</el-form-item>
-									<el-form-item label="超管:" v-bind:class="dialog_data.IsAdmin ? 'red' : ''" style="width:200px;margin-top:-15px">{{ dialog_data.IsAdmin == 0 ? '否' : '是' }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="昵称:" style="width: 200px; margin-top: -15px">{{ dialog_data.NickName }}</el-form-item>
+									<el-form-item label="超管:" v-bind:class="dialog_data.IsAdmin ? 'red' : ''" style="width: 200px; margin-top: -15px">{{ dialog_data.IsAdmin == 0 ? '否' : '是' }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="金币:" style="width:200px;margin-top:-15px">{{ dialog_data.Score }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="金币:" style="width: 200px; margin-top: -15px">{{ dialog_data.Score }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="银行金币:" style="width:200px;margin-top:-15px">{{ dialog_data.BankScore }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="银行金币:" style="width: 200px; margin-top: -15px">{{ dialog_data.BankScore }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="备注:" style="width:1000px;margin-top:-15px"> {{ dialog_data.Note }} </el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="备注:" style="width: 1000px; margin-top: -15px"> {{ dialog_data.Note }} </el-form-item>
 								</el-form>
-								<el-form :inline="true" style="margin-left:100px">
+								<el-form :inline="true" style="margin-left: 100px">
 									<el-form-item>
 										<el-button type="primary" @click="handleShowNoteDialog()" v-show="auth('修改备注')">修改备注</el-button>
 										<el-button type="primary" @click="handleModifyField('IsTester')" v-show="auth('设置取消测试')">{{ this.dialog_data.IsTester == 0 ? '设置测试' : '取消测试' }}</el-button>
@@ -94,27 +94,27 @@
 						</div>
 					</el-tab-pane>
 					<el-tab-pane label="登陆注册" name="1">
-						<div style="height: 70vh;overflow: auto;">
+						<div style="height: 70vh; overflow: auto">
 							<el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:30px">
-									<el-form-item label=" " style="margin-left:165px"></el-form-item>
-									<el-form-item label=" " style="margin-left:265px"></el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 30px">
+									<el-form-item label=" " style="margin-left: 165px"></el-form-item>
+									<el-form-item label=" " style="margin-left: 265px"></el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="登录IP:" style="width:400px;margin-top:-15px">{{ dialog_data.LastLoginIp }}</el-form-item>
-									<el-form-item label="注册IP:" style="width:400px;margin-top:-15px">{{ dialog_data.RegIp }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="登录IP:" style="width: 400px; margin-top: -15px">{{ dialog_data.LastLoginIp }}</el-form-item>
+									<el-form-item label="注册IP:" style="width: 400px; margin-top: -15px">{{ dialog_data.RegIp }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="登录设备:" style="width:400px;margin-top:-15px">{{ dialog_data.LastLoginOs }}</el-form-item>
-									<el-form-item label="注册设备:" style="width:400px;margin-top:-15px">{{ dialog_data.RegOs }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="登录设备:" style="width: 400px; margin-top: -15px">{{ dialog_data.LastLoginOs }}</el-form-item>
+									<el-form-item label="注册设备:" style="width: 400px; margin-top: -15px">{{ dialog_data.RegOs }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="登录时间:" style="width:400px;margin-top:-15px">{{ dialog_data.LastLoginTime }}</el-form-item>
-									<el-form-item label="注册时间:" style="width:400px;margin-top:-15px">{{ dialog_data.RegTime }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="登录时间:" style="width: 400px; margin-top: -15px">{{ dialog_data.LastLoginTime }}</el-form-item>
+									<el-form-item label="注册时间:" style="width: 400px; margin-top: -15px">{{ dialog_data.RegTime }}</el-form-item>
 								</el-form>
-								<el-form :inline="true" label-width="130px" style="margin-left:50px">
-									<el-form-item label="登录机器:" style="width:400px;margin-top:-15px">{{ dialog_data.LastLoginMachineId }}</el-form-item>
-									<el-form-item label="注册机器:" style="width:400px;margin-top:-15px">{{ dialog_data.RegMachineId }}</el-form-item>
+								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
+									<el-form-item label="登录机器:" style="width: 400px; margin-top: -15px">{{ dialog_data.LastLoginMachineId }}</el-form-item>
+									<el-form-item label="注册机器:" style="width: 400px; margin-top: -15px">{{ dialog_data.RegMachineId }}</el-form-item>
 								</el-form>
 							</el-form>
 						</div>
@@ -182,10 +182,10 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('玩家管理', '账号管理', o)
+			return app.auth2('玩家管理', '账号管理', o)
 		},
 		tagChange() {
-			this.dialog_data_copy = app.getInstance().clone(this.dialog_data)
+			this.dialog_data_copy = app.clone(this.dialog_data)
 		},
 		handleQuery(page) {
 			if (typeof page != 'number') page = 1
@@ -194,7 +194,7 @@ export default {
 				pagesize: 10,
 				userid_or_account: this.filters.userid_or_account,
 			}
-			app.getInstance().post('/user/account/query', data, (result) => {
+			app.post('/user/account/query', data, (result) => {
 				this.table_data = result.data
 				this.total = result.total
 				for (var i = 0; i < this.table_data.length; i++) {
@@ -205,14 +205,14 @@ export default {
 		},
 		handleLook(index) {
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
-			this.dialog_data_copy = app.getInstance().clone(this.dialog_data)
+			this.dialog_data = app.clone(this.table_data[index])
+			this.dialog_data_copy = app.clone(this.dialog_data)
 			this.activeName = '0'
 			this.current_tab = null
 			this.dialog = true
 		},
 		handleShowNoteDialog() {
-			this.dialog_data_copy = app.getInstance().clone(this.dialog_data)
+			this.dialog_data_copy = app.clone(this.dialog_data)
 			this.dialog_note = true
 		},
 		handleModifyField(field) {
@@ -228,10 +228,10 @@ export default {
 					data.value = 1
 				}
 			}
-			app.getInstance().post('/user/account/modify', data, () => {
+			app.post('/user/account/modify', data, () => {
 				this.dialog_data[field] = data.value
 				this.table_data[this.current_row][field] = data.value
-				this.dialog_data_copy = app.getInstance().clone(this.dialog_data)
+				this.dialog_data_copy = app.clone(this.dialog_data)
 				this.dialog_note = false
 				this.$message.success('操作成功')
 			})
@@ -242,11 +242,11 @@ export default {
 				Score: this.add_score,
 				Reason: this.add_score_reason,
 			}
-			app.getInstance().post('/user/addscore', data, (result) => {
+			app.post('/user/addscore', data, (result) => {
 				this.table_data[this.current_row].Score = result.Score
 				this.table_data[this.current_row].BankScore = result.BankScore
-				this.dialog_data = app.getInstance().clone(this.table_data[this.current_row])
-				this.dialog_data_copy = app.getInstance().clone(this.dialog_data)
+				this.dialog_data = app.clone(this.table_data[this.current_row])
+				this.dialog_data_copy = app.clone(this.dialog_data)
 				this.dialog_score = false
 				this.$message.success('操作成功')
 			})

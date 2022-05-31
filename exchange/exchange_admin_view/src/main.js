@@ -18,7 +18,7 @@ Vue.use(ElementUI, {
 //使用钩子函数对路由进行权限跳转
 router.beforeEach((to, from, next) => {
 	document.title = `后台演示系统`
-	app.getInstance().setInfo(sessionStorage.getItem('userdata'))
+	app.setInfo(sessionStorage.getItem('userdata'))
 	const token = sessionStorage.getItem('token')
 	if (!token && to.path !== '/login') {
 		next('/login')

@@ -2,20 +2,19 @@
 	<div>
 		<el-row :gutter="20">
 			<el-col :span="8">
-				<el-card shadow="hover" class="mgb20" style="height:360px;width:400px">
+				<el-card shadow="hover" class="mgb20" style="height: 330px; width: 400px">
 					<div class="user-info">
 						<img src="../src/assets/img/img.jpg" class="user-avator" alt />
 						<div class="user-info-cont">
-							<div class="user-info-name">{{ info.nickname }}</div>
+							<div class="user-info-name">{{ info.NickName }}</div>
 							<div>{{ info.role }}</div>
 						</div>
 					</div>
-					<div class="user-info-list"><span style="margin-left:59px">账号：</span> {{ info.Account }}</div>
-					<div class="user-info-list"><span style="margin-left:29px">登录次数：</span> {{ info.LoginCount }}</div>
-					<div class="user-info-list"><span style="margin-left:17px">本次登录IP：</span> {{ info.Ip + '   ' + info.Addr }}</div>
-					<div class="user-info-list"><span style="margin-left:17px">上次登录IP：</span> {{ info.LastLoginIp + '  ' + info.LastAddr }}</div>
-					<div class="user-info-list"><span>上次登录时间：</span> {{ info.LastLoginTime }}</div>
-					<div class="user-info-list"><span style="margin-left:29px">系统版本：</span> {{ info.version }}</div>
+					<div class="user-info-list"><span style="margin-left: 59px">账号：</span> {{ info.Account }}</div>
+					<div class="user-info-list"><span style="margin-left: 29px">登录次数：</span> {{ info.LoginCount }}</div>
+					<div class="user-info-list"><span style="margin-left: 43px">登录IP：</span> {{ info.Ip }}</div>
+					<div class="user-info-list"><span>上次登录时间：</span> {{ info.LoginTime }}</div>
+					<div class="user-info-list"><span style="margin-left: 29px">系统版本：</span> {{ info.Version }}</div>
 				</el-card>
 			</el-col>
 		</el-row>
@@ -27,7 +26,7 @@ import { app } from '@/api/app.js'
 export default {
 	data() {
 		return {
-			info: app.getInstance().getInfo(),
+			info: app.getInfo(),
 		}
 	},
 	components: {},

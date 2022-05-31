@@ -35,7 +35,7 @@ export default {
 	data() {
 		return {
 			collapse: false,
-			items: app.getInstance().getInfo().Menu,
+			items: app.getInfo().MenuData,
 		}
 	},
 	computed: {

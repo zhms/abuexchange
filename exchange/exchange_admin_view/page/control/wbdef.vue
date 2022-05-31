@@ -54,23 +54,23 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('个人操盘', '黑白定义', o)
+			return app.auth2('个人操盘', '黑白定义', o)
 		},
 		handleQuery() {
-			app.getInstance().post('/control/def/query', {}, (result) => {
+			app.post('/control/def/query', {}, (result) => {
 				this.table_data = result
 			})
 		},
 		handleModify(index) {
 			this.current_row = index
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.dialog_title = '修改-' + this.table_data[index].DefName
 			this.dialog = true
 		},
 		handleConfirm() {
-			app.getInstance().post('/control/def/modify', this.dialog_data, (result) => {
+			app.post('/control/def/modify', this.dialog_data, (result) => {
 				this.table_data[this.current_row] = this.dialog_data
-				this.table_data = app.getInstance().clone(this.table_data)
+				this.table_data = app.clone(this.table_data)
 				this.dialog = false
 			})
 		},

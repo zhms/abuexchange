@@ -37,7 +37,7 @@ export default {
 		return {
 			collapse: false,
 			fullscreen: false,
-			name: app.getInstance().getInfo().nickname,
+			name: app.getInfo().NickName,
 			message: 2,
 		}
 	},

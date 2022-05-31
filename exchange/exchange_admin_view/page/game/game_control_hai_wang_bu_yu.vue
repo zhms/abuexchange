@@ -48,7 +48,7 @@ export default {
 		},
 		handleConfirm() {
 			this.dialog_data.GameControl = JSON.stringify(this.GameControl)
-			app.getInstance().post('/game/game/modify', this.dialog_data, () => {
+			app.post('/game/game/modify', this.dialog_data, () => {
 				this.confirm(this.dialog_data.GameControl)
 				this.$message.success('操作成功')
 				this.dialog = false

@@ -39,7 +39,7 @@ export default new Router({
 				{ path: '/statistic_game', component: () => import('../../page/statistic/game.vue'), meta: { title: '游戏统计' } },
 				{ path: '/statistic_room', component: () => import('../../page/statistic/room.vue'), meta: { title: '房间统计' } },
 				//系统管理
-				{ path: '/system_setting', component: () => import('../../page/system/setting.vue'), meta: { title: '系统设置' } },
+				{ path: '/system_login_log', component: () => import('../../page/system/loginlog.vue'), meta: { title: '登录日志' } },
 				{ path: '/system_account', component: () => import('../../page/system/account.vue'), meta: { title: '账号管理' } },
 				{ path: '/system_role', component: () => import('../../page/system/roles.vue'), meta: { title: '角色管理' } },
 				{ path: '/system_log', component: () => import('../../page/system/log.vue'), meta: { title: '系统日志' } },

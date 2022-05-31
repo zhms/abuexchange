@@ -93,17 +93,17 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('服务管理', '服务列表', o)
+			return app.auth2('服务管理', '服务列表', o)
 		},
 		handleQuery() {
-			app.getInstance().post('/server/list/query', {}, (serverdata) => {
+			app.post('/server/list/query', {}, (serverdata) => {
 				this.table_data = serverdata
 				this.handleStatus()
 			})
 		},
 		handleModifyServer(index) {
 			this.dialog_title = '修改服务'
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.current_row = index
 			this.dialog = true
 		},
@@ -115,15 +115,15 @@ export default {
 		},
 		handleConfirm() {
 			if (this.dialog_title == '添加服务') {
-				app.getInstance().post('/server/list/add', this.dialog_data, (data) => {
+				app.post('/server/list/add', this.dialog_data, (data) => {
 					this.table_data.push(this.dialog_data)
 					this.dialog = false
 					this.$message.success('操作成功')
 				})
 			}
 			if (this.dialog_title == '修改服务') {
-				app.getInstance().post('/server/list/modify', this.dialog_data, (data) => {
-					this.table_data[this.current_row] = app.getInstance().clone(this.dialog_data)
+				app.post('/server/list/modify', this.dialog_data, (data) => {
+					this.table_data[this.current_row] = app.clone(this.dialog_data)
 					this.dialog = false
 					this.$message.success('操作成功')
 				})
@@ -131,42 +131,42 @@ export default {
 		},
 		handleDeleteServer(index) {
 			if (confirm('确定删除该服务?')) {
-				app.getInstance().post('/server/list/delete', this.table_data[index], (data) => {
+				app.post('/server/list/delete', this.table_data[index], (data) => {
 					this.table_data.splice(index, 1)
 					this.$message.success('操作成功')
 				})
 			}
 		},
 		handleRestartAll() {
-			app.getInstance().post('/server/list/startall', {}, (data) => {
+			app.post('/server/list/startall', {}, (data) => {
 				this.handleStatus()
 			})
 		},
 		handleStopAll() {
-			app.getInstance().post('/server/list/stopall', {}, (data) => {
+			app.post('/server/list/stopall', {}, (data) => {
 				this.handleStatus()
 			})
 		},
 		handleStartServer(index) {
-			app.getInstance().post('/server/list/start', { ServerName: this.table_data[index].ServerName }, (data) => {
+			app.post('/server/list/start', { ServerName: this.table_data[index].ServerName }, (data) => {
 				this.handleStatus()
 			})
 		},
 		handleStopServer(index) {
-			app.getInstance().post('/server/list/stop', { ServerName: this.table_data[index].ServerName }, (data) => {
+			app.post('/server/list/stop', { ServerName: this.table_data[index].ServerName }, (data) => {
 				this.handleStatus()
 			})
 		},
 		handleStatus() {
-			app.getInstance().post('/server/list/status', {}, (runningdata) => {
+			app.post('/server/list/status', {}, (runningdata) => {
 				for (var i = 0; i < this.table_data.length; i++) {
 					this.table_data[i].running = runningdata[this.table_data[i].ServerName]
 				}
-				this.table_data = app.getInstance().clone(this.table_data)
+				this.table_data = app.clone(this.table_data)
 			})
 		},
 		handleGetCode() {
-			app.getInstance().post('/server/list/getcode', {}, () => {})
+			app.post('/server/list/getcode', {}, () => {})
 		},
 	},
 }

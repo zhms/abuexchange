@@ -27,7 +27,7 @@
 			</el-table>
 		</div>
 		<div class="pagination">
-			<el-pagination style="margin-top:5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="total" @current-change="handleQuery" :page-size="pagesize"></el-pagination>
+			<el-pagination style="margin-top: 5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="total" @current-change="handleQuery" :page-size="pagesize"></el-pagination>
 		</div>
 		<div>
 			<el-dialog :title="dialog_title" :visible.sync="dialog" width="400px" center>
@@ -82,7 +82,7 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('个人操盘', '个控配置', o)
+			return app.auth2('个人操盘', '个控配置', o)
 		},
 		handleAdd() {
 			this.dialog_title = '添加体验'
@@ -96,7 +96,7 @@ export default {
 				page: this.current_page,
 				pagesize: this.pagesize,
 			}
-			app.getInstance().post('/control/list/query', reqdata, (result) => {
+			app.post('/control/list/query', reqdata, (result) => {
 				this.table_data = result.data
 				this.total = result.total
 				console.log(result)
@@ -104,13 +104,13 @@ export default {
 		},
 		handleModify(index) {
 			this.dialog_title = '修改体验'
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.current_row = index
 			this.dialog = true
 		},
 		handleDel(index) {
 			if (confirm('确定删除该体验?')) {
-				app.getInstance().post('/control/list/delete', { id: this.table_data[index].id }, (result) => {
+				app.post('/control/list/delete', { id: this.table_data[index].id }, (result) => {
 					this.table_data.splice(index, 1)
 					this.$message.success('操作成功')
 				})
@@ -119,17 +119,17 @@ export default {
 		handleConfirm() {
 			this.dialog = false
 			if (this.dialog_title == '添加体验') {
-				app.getInstance().post('/control/list/add', this.dialog_data, (result) => {
-					var data = app.getInstance().clone(this.dialog_data)
+				app.post('/control/list/add', this.dialog_data, (result) => {
+					var data = app.clone(this.dialog_data)
 					data.id = -1
 					this.table_data.push(data)
 					this.$message.success('操作成功')
 				})
 			}
 			if (this.dialog_title == '修改体验') {
-				app.getInstance().post('/control/list/modify', this.dialog_data, (result) => {
-					this.table_data[this.current_row] = app.getInstance().clone(this.dialog_data)
-					this.table_data = app.getInstance().clone(this.table_data)
+				app.post('/control/list/modify', this.dialog_data, (result) => {
+					this.table_data[this.current_row] = app.clone(this.dialog_data)
+					this.table_data = app.clone(this.table_data)
 					this.$message.success('操作成功')
 				})
 			}
@@ -154,7 +154,7 @@ export default {
 				var str = JSON.stringify({ minscore_rate: Number(this.step_data[i].minscore_rate), maxscore_rate: Number(this.step_data[i].maxscore_rate) })
 				this.table_data[this.current_row]['Step' + (i + 1)] = str
 			}
-			app.getInstance().post('/control/list/modify', this.table_data[this.current_row], (result) => {
+			app.post('/control/list/modify', this.table_data[this.current_row], (result) => {
 				this.step_dialog = false
 				this.$message.success('操作成功')
 			})

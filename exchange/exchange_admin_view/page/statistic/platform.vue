@@ -3,12 +3,12 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="运营商:">
-					<el-select v-model="filters.SellerId" placeholder="请选择" style="width:150px;margin-right: 10px;">
+					<el-select v-model="filters.SellerId" placeholder="请选择" style="width: 150px; margin-right: 10px">
 						<el-option v-for="item in sellers" :key="item.SellerName" :label="item.SellerName" :value="item.SellerId"> </el-option>
 					</el-select>
 				</el-form-item>
 				<el-form-item label="查询日期:">
-					<el-date-picker v-model="filters.QueryDate" align="right" type="date" placeholder="选择日期" style="width:150px"> </el-date-picker>
+					<el-date-picker v-model="filters.QueryDate" align="right" type="date" placeholder="选择日期" style="width: 150px"> </el-date-picker>
 				</el-form-item>
 				<el-form-item>
 					<el-button type="primary" class="mr10" @click="handleQuery()">查询</el-button>
@@ -56,7 +56,7 @@ export default {
 	components: {},
 	computed: {},
 	created() {
-		app.getInstance().post('/seller/list/query', {}, (result) => {
+		app.post('/seller/list/query', {}, (result) => {
 			this.sellers = [{ SellerId: null, SellerName: '全部' }]
 			for (var i = 0; i < result.length; i++) {
 				this.sellers.push({ SellerId: result[i].SellerId, SellerName: result[i].SellerName })
@@ -66,7 +66,7 @@ export default {
 	},
 	methods: {
 		handleQuery() {
-			app.getInstance().post('/statistic/platform/query', this.filters, (result) => {
+			app.post('/statistic/platform/query', this.filters, (result) => {
 				for (var i = 0; i < result.length; i++) {
 					result[i].id = i + 1
 					for (var j = 0; j < this.sellers.length; j++) {

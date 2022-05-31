@@ -4,10 +4,10 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="管理员:">
-					<el-input v-model="filters.NickName" style="width:150px" :clearable="true"></el-input>
+					<el-input v-model="filters.NickName" style="width: 150px" :clearable="true"></el-input>
 				</el-form-item>
 				<el-form-item label="操作:">
-					<el-input v-model="filters.OptType" style="width:150px" :clearable="true"></el-input>
+					<el-input v-model="filters.OptType" style="width: 150px" :clearable="true"></el-input>
 				</el-form-item>
 				<el-form-item>
 					<el-button type="primary" v-on:click="handleQuery">查询</el-button>
@@ -29,7 +29,7 @@
 				</el-table-column>
 			</el-table>
 			<div class="pagination">
-				<el-pagination style="margin-top:5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="total" @current-change="handleQuery" :page-size="pagesize"></el-pagination>
+				<el-pagination style="margin-top: 5px" background layout="total, prev, pager, next, jumper" :hide-on-single-page="true" :total="total" @current-change="handleQuery" :page-size="pagesize"></el-pagination>
 			</div>
 		</div>
 	</div>
@@ -72,7 +72,7 @@ export default {
 				page: page,
 				pagesize: this.pagesize,
 			}
-			app.getInstance().post('/system/log/query', data, (result) => {
+			app.post('/system/log/query', data, (result) => {
 				this.table_data = result.data
 				this.total = result.total
 				for (var i = 0; i < this.table_data.length; i++) {

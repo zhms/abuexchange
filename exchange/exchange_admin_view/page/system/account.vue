@@ -85,7 +85,7 @@ export default {
 	computed: {},
 	created() {
 		this.handleQuery()
-		app.getInstance().post('/system/role/query', {}, (data) => {
+		app.post('/system/role/query', {}, (data) => {
 			this.options = []
 			for (var i = 0; i < data.length; i++) {
 				this.options.push({ value: data[i].RoleName })
@@ -94,10 +94,10 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('系统管理', '账号管理', o)
+			return app.auth2('系统管理', '账号管理', o)
 		},
 		handleQuery() {
-			app.getInstance().post('/system/account/query', {}, (data) => {
+			app.post('/system/account/query', {}, (data) => {
 				this.table_data = data
 			})
 		},
@@ -109,12 +109,12 @@ export default {
 		handleModify(index) {
 			this.current_row = index
 			this.dialog_title = '修改账号'
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.dialog = true
 		},
 		handleDel(index) {
 			if (confirm('确定删除该配置?')) {
-				app.getInstance().post('/system/account/delete', { Account: this.table_data[index].Account }, (data) => {
+				app.post('/system/account/delete', { Account: this.table_data[index].Account }, (data) => {
 					this.table_data.splice(index, 1)
 					this.$message.success('操作成功')
 				})
@@ -122,14 +122,14 @@ export default {
 		},
 		handleConfirm() {
 			if (this.dialog_title == '修改账号') {
-				app.getInstance().post('/system/account/modify', this.dialog_data, () => {
-					this.table_data[this.current_row] = app.getInstance().clone(this.dialog_data)
+				app.post('/system/account/modify', this.dialog_data, () => {
+					this.table_data[this.current_row] = app.clone(this.dialog_data)
 					this.dialog = false
 					this.$message.success('操作成功')
 				})
 			}
 			if (this.dialog_title == '添加账号') {
-				app.getInstance().post('/system/account/add', this.dialog_data, (data) => {
+				app.post('/system/account/add', this.dialog_data, (data) => {
 					this.dialog_data.AdminId = data.AdminId
 					this.table_data.push(this.dialog_data)
 					this.dialog = false

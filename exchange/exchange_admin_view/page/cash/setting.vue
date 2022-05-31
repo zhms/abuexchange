@@ -19,7 +19,7 @@
 <script>
 import { app } from '@/api/app.js'
 export default {
-	data: function() {
+	data: function () {
 		return {
 			form_data: {
 				RechargeScoreMultipe: 0,
@@ -28,13 +28,13 @@ export default {
 		}
 	},
 	created() {
-		app.getInstance().post('/cash/setting/query', {}, (result) => {
+		app.post('/cash/setting/query', {}, (result) => {
 			if (result.length > 0) this.form_data = result[0]
 		})
 	},
 	methods: {
 		SaveSetting() {
-			app.getInstance().post('/cash/setting/modify', this.form_data, (result) => {
+			app.post('/cash/setting/modify', this.form_data, (result) => {
 				this.$message.success('保存成功')
 			})
 		},

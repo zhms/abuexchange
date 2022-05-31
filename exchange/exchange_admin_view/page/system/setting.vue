@@ -63,10 +63,10 @@ export default {
 	},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('系统管理', '系统设置', o)
+			return app.auth2('系统管理', '系统设置', o)
 		},
 		handleQuery() {
-			app.getInstance().post('/system/config/query', {}, (data) => {
+			app.post('/system/config/query', {}, (data) => {
 				this.table_data = data
 			})
 		},
@@ -78,12 +78,12 @@ export default {
 		handleModify(index) {
 			this.current_row = index
 			this.dialog_title = '修改配置'
-			this.dialog_data = app.getInstance().clone(this.table_data[index])
+			this.dialog_data = app.clone(this.table_data[index])
 			this.dialog = true
 		},
 		handleDel(index) {
 			if (confirm('确定删除该项配置?')) {
-				app.getInstance().post('/system/config/delete', { SettingName: this.table_data[index].SettingName }, (data) => {
+				app.post('/system/config/delete', { SettingName: this.table_data[index].SettingName }, (data) => {
 					this.table_data.splice(index, 1)
 					this.$message.success('操作成功')
 				})
@@ -91,8 +91,8 @@ export default {
 		},
 		handleConfirm() {
 			if (this.dialog_title == '修改配置') {
-				app.getInstance().post('/system/config/modify', this.dialog_data, () => {
-					this.table_data[this.current_row] = app.getInstance().clone(this.dialog_data)
+				app.post('/system/config/modify', this.dialog_data, () => {
+					this.table_data[this.current_row] = app.clone(this.dialog_data)
 					this.dialog = false
 					this.$message.success('操作成功')
 				})
@@ -110,7 +110,7 @@ export default {
 					this.$message.error('请填写备注')
 					return
 				}
-				app.getInstance().post('/system/config/add', this.dialog_data, () => {
+				app.post('/system/config/add', this.dialog_data, () => {
 					this.table_data.push(this.dialog_data)
 					this.dialog = false
 					this.$message.success('操作成功')

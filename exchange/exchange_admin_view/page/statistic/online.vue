@@ -3,7 +3,7 @@
 		<div class="handle-box">
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="运营商:">
-					<el-select v-model="filters.SellerId" placeholder="请选择" style="width:150px;margin-right: 10px;">
+					<el-select v-model="filters.SellerId" placeholder="请选择" style="width: 150px; margin-right: 10px">
 						<el-option v-for="item in sellers" :key="item.SellerName" :label="item.SellerName" :value="item.SellerId"> </el-option>
 					</el-select>
 					<el-form-item>
@@ -59,7 +59,7 @@ export default {
 	computed: {},
 	created() {
 		this.handleQuery()
-		app.getInstance().post('/seller/list/query', {}, (result) => {
+		app.post('/seller/list/query', {}, (result) => {
 			this.sellers = [{ SellerId: null, SellerName: '全部' }]
 			for (var i = 0; i < result.length; i++) {
 				this.sellers.push({ SellerId: result[i].SellerId, SellerName: result[i].SellerName })
@@ -68,7 +68,7 @@ export default {
 	},
 	methods: {
 		handleQuery() {
-			app.getInstance().post('/statistic/gameonline/query', { SellerId: this.filters.SellerId }, (result) => {
+			app.post('/statistic/gameonline/query', { SellerId: this.filters.SellerId }, (result) => {
 				for (var i = 0; i < result.length; i++) {
 					result[i].id = i + 1
 				}
@@ -78,7 +78,7 @@ export default {
 		handleLook(index) {
 			this.dialog_title = this.table_data[index].GameName + ' 房间在线'
 			var data = { GameId: this.table_data[index].GameId, SellerId: this.filters.SellerId }
-			app.getInstance().post('/statistic/roomonline/query', data, (result) => {
+			app.post('/statistic/roomonline/query', data, (result) => {
 				for (var i = 0; i < result.length; i++) {
 					result[i].id = i + 1
 				}

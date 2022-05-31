@@ -4,7 +4,7 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="玩家Id:">
-					<el-input v-model="filters.UserId" style="width:150px" :clearable="true"></el-input>
+					<el-input v-model="filters.UserId" style="width: 150px" :clearable="true"></el-input>
 				</el-form-item>
 				<el-form-item>
 					<el-button type="primary" v-on:click="handleQuery">查询</el-button>
@@ -49,37 +49,37 @@ export default {
 	created() {},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('个人操盘', '查看个控', o)
+			return app.auth2('个人操盘', '查看个控', o)
 		},
 		handleQuery() {
 			if (this.filters.UserId == 0) this.filters.UserId = null
-			app.getInstance().post('/control/personal/query', { UserId: this.filters.UserId }, (result) => {
+			app.post('/control/personal/query', { UserId: this.filters.UserId }, (result) => {
 				this.table_data = result
 			})
 		},
 		handleReset(index) {
 			if (confirm('确定重置?')) {
-				app.getInstance().post('/control/personal/modify', { UserId: this.table_data[index].UserId, opt: 'reset' }, (result) => {
+				app.post('/control/personal/modify', { UserId: this.table_data[index].UserId, opt: 'reset' }, (result) => {
 					this.table_data[index].Status = 0
 					this.table_data[index].ExpId = 0
 					this.table_data[index].StartScore = 0
 					this.table_data[index].DestScore = 0
 					this.table_data[index].MaxScore = 0
 					this.table_data[index].Step = 0
-					this.table_data = app.getInstance().clone(this.table_data)
+					this.table_data = app.clone(this.table_data)
 				})
 			}
 		},
 		handleEnd(index) {
 			if (confirm('确定结束?')) {
-				app.getInstance().post('/control/personal/modify', { UserId: this.table_data[index].UserId, opt: 'end' }, (result) => {
+				app.post('/control/personal/modify', { UserId: this.table_data[index].UserId, opt: 'end' }, (result) => {
 					this.table_data[index].Status = 1
 					this.table_data[index].ExpId = 0
 					this.table_data[index].StartScore = 0
 					this.table_data[index].DestScore = 0
 					this.table_data[index].MaxScore = 0
 					this.table_data[index].Step = 0
-					this.table_data = app.getInstance().clone(this.table_data)
+					this.table_data = app.clone(this.table_data)
 				})
 			}
 		},

@@ -84,7 +84,7 @@ export default {
 				this.GameRobot.BetAreaWeight.push(Number(arr[i]))
 			}
 			this.dialog_data.GameRobot = JSON.stringify(this.GameRobot)
-			app.getInstance().post('/game/game/modify', this.dialog_data, () => {
+			app.post('/game/game/modify', this.dialog_data, () => {
 				this.confirm(this.dialog_data.GameRobot)
 				this.$message.success('操作成功')
 				this.dialog = false

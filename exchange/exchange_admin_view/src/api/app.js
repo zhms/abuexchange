@@ -5,7 +5,7 @@ import axios from 'axios'
 var service = axios.create({
 	//  baseURL: 'http://192.168.2.46:1221/',
 	//	baseURL: 'http://localhost:1221/',
-	baseURL: 'http://localhost:1221/',
+	baseURL: 'http://127.0.0.1:4534',
 	timeout: 60000,
 })
 service.interceptors.request.use(
@@ -18,9 +18,9 @@ service.interceptors.request.use(
 	}
 )
 
-app.getInstance = (function() {
+app.getInstance = (function () {
 	let instance
-	return function() {
+	return function () {
 		if (!instance) {
 			instance = new app()
 		}
@@ -28,11 +28,12 @@ app.getInstance = (function() {
 	}
 })()
 
-app.prototype.clone = function(obj) {
+app.clone = function (obj) {
 	return JSON.parse(JSON.stringify(obj))
 }
+
 //显示加载动画
-app.prototype.showLoading = function(show) {
+app.showLoading = function (show) {
 	if (show) {
 		if (!this.loading) {
 			this.loading = Loading.service({ lock: true, spinner: 'el-icon-loading', background: 'rgba(0, 0, 0, 0.7)' })
@@ -45,21 +46,21 @@ app.prototype.showLoading = function(show) {
 	}
 }
 //退回登录界面
-app.prototype.showLoginPage = function() {
+app.showLoginPage = function () {
 	router.push('/login')
 }
 //获取管理员信息
-app.prototype.getInfo = function() {
+app.getInfo = function () {
 	return this.info
 }
 //设置管理员信息
-app.prototype.setInfo = function(data) {
+app.setInfo = function (data) {
 	if (data) {
 		this.info = JSON.parse(data)
 	}
 }
 //get请求
-app.prototype.get = function(url, p1, p2) {
+app.get = function (url, p1, p2) {
 	var data = null
 	var callback = null
 	if (typeof p1 == 'object') {
@@ -98,16 +99,17 @@ app.prototype.get = function(url, p1, p2) {
 		})
 }
 //post请求
-app.prototype.post = function(url, data, callback, noloading) {
+app.post = function (url, data, callback, noloading) {
+	if (!data.IgnoreSeller) app.setCurrentSeller(data.SellerId)
 	noloading = false
-	if (!noloading) app.getInstance().showLoading(true)
+	if (!noloading) app.showLoading(true)
 	service({
 		url: url,
 		method: 'post',
 		data,
 	})
 		.then((result) => {
-			if (!noloading) app.getInstance().showLoading(false)
+			if (!noloading) app.showLoading(false)
 			if (result.data.errmsg) {
 				console.log(result.data.errmsg)
 				Message({
@@ -122,7 +124,7 @@ app.prototype.post = function(url, data, callback, noloading) {
 			}
 		})
 		.catch((err) => {
-			if (!noloading) app.getInstance().showLoading(false)
+			if (!noloading) app.showLoading(false)
 			Message({
 				message: err,
 				type: 'error',
@@ -133,33 +135,105 @@ app.prototype.post = function(url, data, callback, noloading) {
 		})
 }
 
-app.prototype.login = function(account, password, verifycode, callback) {
-	app.getInstance().post('/login', { account, password, verifycode }, (result) => {
-		sessionStorage.setItem('userdata', JSON.stringify(result))
-		sessionStorage.setItem('token', result.token)
-		callback()
+app.login = function (account, password, verifycode, callback) {
+	app.post('/user/login', { account, password, verifycode }, (result) => {
+		for (let i = 0; i < result.data.MenuData.length; i++) {
+			for (let j = 0; j < result.data.MenuData[i].subs.length; j++) {
+				for (let k = 0; k < result.data.MenuData[i].subs[j].subs.length; k++) {
+					delete result.data.MenuData[i].subs[j].subs[k].subs
+				}
+			}
+		}
+		for (let i = 0; i < result.data.MenuData.length; i++) {
+			for (let j = 0; j < result.data.MenuData[i].subs.length; j++) {
+				if (result.data.MenuData[i].subs[j].subs.length == 0) {
+					delete result.data.MenuData[i].subs[j].subs
+				}
+			}
+		}
+		for (let i = 0; i < result.data.MenuData.length; i++) {
+			if (result.data.MenuData[i].subs.length == 0) {
+				delete result.data.MenuData[i].subs
+			}
+		}
+		sessionStorage.setItem('userdata', JSON.stringify(result.data))
+		sessionStorage.setItem('token', result.data.Token)
+		if (result.data.SellerId == -1) {
+			app.post('/seller/list', {}, (result) => {
+				sessionStorage.setItem('seller', JSON.stringify(result.data))
+				this.seller = result.data
+				callback()
+			})
+		} else {
+			callback()
+		}
 	})
 }
 
-app.prototype.auth = (m, s, o) => {
-	var info = app.getInstance().getInfo()
-	if (!info) {
-		return false
-	}
-	var authm = info.Auth[m]
-	if (!authm) {
-		return false
-	}
-	var auths = authm
-	if (s) {
-		auths = authm[s]
-	}
-	if (!auths) {
-		return false
-	}
-	var autho = auths[o]
-	if (!autho) {
-		return false
-	}
+app.auth1 = (m, o) => {
+	let info = app.getInfo()
+	if (!info) return false
+	let authm = info.AuthData[m]
+	if (!authm) return false
+	let autho = authm[o]
+	if (!autho) return false
 	return true
+}
+
+app.auth2 = (m, s, o) => {
+	let info = app.getInfo()
+	if (!info) return false
+	let authm = info.AuthData[m]
+	if (!authm) return false
+	let auths = authm[s]
+	if (!auths) return false
+	let autho = auths[o]
+	if (!autho) return false
+	return true
+}
+
+app.auth3 = (m, s, l, o) => {
+	let info = app.getInfo()
+	if (!info) return false
+	let authm = info.AuthData[m]
+	if (!authm) return false
+	let auths = authm[s]
+	if (!auths) return false
+	let authl = auths[l]
+	if (!authl) return false
+	let autho = authl[o]
+	if (!autho) return false
+	return true
+}
+
+app.zong = function () {
+	return app.getInfo().SellerId == -1
+}
+
+app.getSeller = function (callback) {
+	if (!this.seller) {
+		try {
+			this.seller = JSON.parse(sessionStorage.getItem('seller'))
+		} catch (e) {}
+	}
+	return this.seller
+}
+
+app.currentSeller = function () {
+	if (this.current_seller == null || this.current_seller == undefined) {
+		let savecurrentseller = localStorage.getItem('current_seller')
+		if (savecurrentseller) {
+			this.current_seller = parseInt(savecurrentseller)
+		} else {
+			this.current_seller = 0
+		}
+	}
+	return this.current_seller
+}
+
+app.setCurrentSeller = function (seller) {
+	if (seller == null || seller == undefined) return
+	this.current_seller = seller
+	localStorage.setItem('current_seller', `${seller}`)
+	return this.current_seller
 }

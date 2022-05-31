@@ -13,7 +13,7 @@ export default {
 	created() {},
 	methods: {
 		auth(o) {
-			return app.getInstance().auth('玩家管理', '账号管理', o)
+			return app.auth2('玩家管理', '账号管理', o)
 		},
 	},
 }

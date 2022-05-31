@@ -29,7 +29,7 @@
 <script>
 import { app } from '@/api/app.js'
 export default {
-	data: function() {
+	data: function () {
 		return {
 			form_data: {
 				account: 'admin',
@@ -47,7 +47,7 @@ export default {
 		dologin() {
 			this.$refs.login.validate((valid, object) => {
 				if (valid) {
-					app.getInstance().login(this.form_data.account, this.form_data.password, this.form_data.verifycode, () => {
+					app.login(this.form_data.account, this.form_data.password, this.form_data.verifycode, () => {
 						this.$router.push('/home')
 						this.$message.success('登录成功')
 					})
