@@ -31,30 +31,30 @@
 		</div>
 		<!-- 对话框 -->
 		<div>
-			<el-dialog :title="dialog_title" :visible.sync="dialog" width="500px" center>
+			<el-dialog :title="dialog.title" :visible.sync="dialog.show" width="500px" center>
 				<div>
 					<el-form :inline="true" :model="filters">
 						<el-form-item label="角色名:" v-show="zong" style="margin-left: 25px">
-							<el-input v-model="dialog_select.RoleName" :disabled="dialog_type == 'alter'"></el-input>
+							<el-input v-model="dialog.data.RoleName" :disabled="dialog.type == 'modify'"></el-input>
 						</el-form-item>
 						<el-form-item label="上级运营商:" v-show="zong">
-							<el-select v-model="dialog_select.ParentSellerId" placeholder="请选择" style="width: 130px" :disabled="dialog_type == 'alter'" @change="dialogSellerChange">
-								<el-option v-for="item in dialog_select.seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+							<el-select v-model="dialog.data.ParentSellerId" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'" @change="handleDialogSelectParentSellerId">
+								<el-option v-for="item in dialog.options.seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 							</el-select>
 						</el-form-item>
 						<el-form-item label="上级角色:" v-show="zong">
-							<el-select v-model="dialog_select.Parent" placeholder="请选择" style="width: 130px" :disabled="dialog_type == 'alter'" @change="dialogRoleChange">
-								<el-option v-for="item in dialog_select.parents" :key="item.RoleName" :label="item.RoleName" :value="item.RoleName"> </el-option>
+							<el-select v-model="dialog.data.Parent" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'" @change="handleDialogSelectRole">
+								<el-option v-for="item in dialog.options.Parents" :key="item.RoleName" :label="item.RoleName" :value="item.RoleName"> </el-option>
 							</el-select>
 						</el-form-item>
 						<el-form-item label="运营商:" v-show="zong" style="margin-left: 30px">
-							<el-select v-model="dialog_select.SellerId" placeholder="请选择" style="width: 130px" :disabled="dialog_type == 'alter'">
-								<el-option v-for="item in dialog_select.seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+							<el-select v-model="dialog.data.SellerId" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'">
+								<el-option v-for="item in dialog.options.seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 							</el-select>
 						</el-form-item>
 					</el-form>
 				</div>
-				<el-tree :default-checked-keys="dialog_select.ids" node-key="path" ref="authtree" :props="props" show-checkbox v-show="dialog_tree"> </el-tree>
+				<el-tree :default-checked-keys="dialog.selected" node-key="path" ref="authtree" :props="dialog.tree_props" show-checkbox v-show="dialog.show_tree"> </el-tree>
 				<span slot="footer" class="dialog-footer">
 					<el-button type="primary" @click="handleConfirm">确 定</el-button>
 				</span>
@@ -65,35 +65,28 @@
 <script>
 import { app } from '@/api/app.js'
 import '@/assets/css/k.css'
+import base from '@/api/base.js'
 export default {
+	extends: base,
 	data() {
 		return {
-			filters: {
-				SellerId: app.currentSeller(),
+			dialog: {
+				selected: [],
+				show_tree: false,
+				tree_props: {
+					label: 'name',
+					children: 'children',
+				},
+				data: {
+					RoleName: null,
+					Parent: null,
+					SellerId: null,
+				},
+				options: {
+					seller: [],
+					Parents: [],
+				},
 			},
-			dialog_select: {
-				seller: [],
-				SellerId: null,
-				parents: [],
-				ParentSellerId: null,
-				Parent: null,
-				ids: [],
-				RoleName: null,
-			},
-			props: {
-				label: 'name',
-				children: 'children',
-			},
-			zong: app.zong(),
-			seller: app.getSeller(),
-			table_data: null,
-			pagesize: 15,
-			total: 0,
-			dialog: false,
-			dialog_type: null,
-			dialog_data: {},
-			dialog_title: null,
-			dialog_tree: false,
 		}
 	},
 	components: {},
@@ -105,29 +98,27 @@ export default {
 		auth2(o) {
 			return app.auth2('系统管理', '角色管理', o)
 		},
-		dialogSellerChange() {
-			this.dialog_tree = false
-			this.dialog_select.Parent = null
-			app.post('/admin/role/listall', { SellerId: this.dialog_select.ParentSellerId, IgnoreSeller: true }, (result) => {
-				this.dialog_select.parents = []
+		handleDialogSelectParentSellerId() {
+			this.dialog.show_tree = false
+			this.dialog.data.Parent = null
+			app.post('/admin/role/listall', { SellerId: this.dialog.data.ParentSellerId, IgnoreSeller: true }, (result) => {
+				let parents = []
 				for (let i = 0; i < result.data.length; i++) {
-					this.dialog_select.parents.push({ RoleName: result.data[i] })
+					parents.push({ RoleName: result.data[i] })
 				}
+				this.dialog.options.Parents = parents
 			})
 		},
-		dialogRoleChange() {
-			if (this.dialog_select.Parent) {
-				app.post('/admin/role/roledata', { SellerId: this.dialog_select.ParentSellerId, IgnoreSeller: true, RoleName: this.dialog_select.Parent }, (result) => {
-					this.dialog_select.parentroledata = JSON.parse(result.data.RoleData)
-					this.dialog_select.superroledata = JSON.parse(result.data.SuperRoleData)
-					this.dialog_tree = true
-					this.dialog_select.roledata = {}
-					this.dialog_tree = true
-					let treedata = this.getTreeData()
-					this.$refs.authtree.root.setData(treedata.menu)
-					this.dialog_select.ids = treedata.ids
-				})
-			}
+		handleDialogSelectRole() {
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, IgnoreSeller: true, RoleName: this.dialog.data.Parent }, (result) => {
+				this.dialog.parentroledata = JSON.parse(result.data.RoleData)
+				this.dialog.superroledata = JSON.parse(result.data.SuperRoleData)
+				this.dialog.show_tree = true
+				this.dialog.roledata = {}
+				let treedata = this.getTreeData()
+				this.$refs.authtree.root.setData(treedata.menu)
+				this.dialog.selected = treedata.selected
+			})
 		},
 		handleQuery(page) {
 			if (typeof page == 'object') page = 1
@@ -148,21 +139,20 @@ export default {
 			})
 		},
 		handleAdd() {
-			this.dialog_title = `添加角色`
-			this.dialog_type = 'add'
-			this.dialog_data = {}
-			this.dialog_select.SellerId = null
-			this.dialog_select.ParentSellerId = null
-			this.dialog_select.Parent = null
-			this.dialog_select.RoleName = null
-			this.dialog_select.seller = app.clone(this.seller)
-			for (let i = 0; i < this.dialog_select.seller.length; i++) {
-				if (this.dialog_select.seller[i].SellerId == 0) {
-					this.dialog_select.seller.splice(i, 1)
+			this.dialog.title = `添加角色`
+			this.dialog.type = 'add'
+			this.dialog.data.SellerId = null
+			this.dialog.data.ParentSellerId = null
+			this.dialog.data.Parent = null
+			this.dialog.data.RoleName = null
+			this.dialog.options.seller = app.clone(this.seller)
+			for (let i = 0; i < this.dialog.options.seller.length; i++) {
+				if (this.dialog.options.seller[i].SellerId == 0) {
+					this.dialog.options.seller.splice(i, 1)
 				}
 			}
-			this.dialog_tree = false
-			this.dialog = true
+			this.dialog.show_tree = false
+			this.dialog.show = true
 		},
 		handleModify(index) {
 			this.current_row = index
@@ -170,66 +160,51 @@ export default {
 				this.$message.error('该角色不可修改')
 				return
 			}
-			this.dialog_data = app.clone(this.table_data[this.current_row])
-			this.dialog_select.SellerId = this.dialog_data.SellerId
-			this.dialog_select.ParentSellerId = this.dialog_data.ParentSellerId
-			this.dialog_select.Parent = this.dialog_data.Parent
-			this.dialog_select.RoleName = this.dialog_data.RoleName
-			this.dialog_select.seller = app.clone(this.seller)
-			this.dialog_title = `修改角色`
-			this.dialog_type = 'alter'
-			this.dialog = true
+			this.dialog.data = app.clone(this.table_data[this.current_row])
+			this.dialog.options.seller = app.clone(this.seller)
+			this.dialog.title = `修改角色`
+			this.dialog.type = 'modify'
+			this.dialog.show = true
 			setTimeout(() => {
 				this.$refs.authtree.root.setData([])
 			}, 10)
-			app.post('/admin/role/listall', { SellerId: this.dialog_select.SellerId, IgnoreSeller: true }, (result) => {
-				this.dialog_select.parents = []
-				for (let i = 0; i < result.data.length; i++) {
-					this.dialog_select.parents.push({ RoleName: result.data[i] })
-				}
-				for (let i = 0; i < this.dialog_select.seller.length; i++) {
-					if (this.dialog_select.seller[i].SellerId == 0) {
-						this.dialog_select.seller.splice(i, 1)
-					}
-				}
-				app.post('/admin/role/roledata', { SellerId: this.dialog_data.SellerId, IgnoreSeller: true, RoleName: this.dialog_data.Parent }, (resulta) => {
-					this.dialog_select.parentroledata = JSON.parse(resulta.data.RoleData)
-					this.dialog_select.superroledata = JSON.parse(resulta.data.SuperRoleData)
-					app.post('/admin/role/roledata', { SellerId: this.dialog_data.SellerId, IgnoreSeller: true, RoleName: this.dialog_data.RoleName }, (resultb) => {
-						this.dialog_select.roledata = JSON.parse(resultb.data.RoleData)
-						this.dialog_tree = true
-						let treedata = this.getTreeData()
-						this.$refs.authtree.root.setData(treedata.menu)
-						this.dialog_select.ids = treedata.ids
-					})
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, IgnoreSeller: true, RoleName: this.dialog.data.Parent }, (resulta) => {
+				this.dialog.parentroledata = JSON.parse(resulta.data.RoleData)
+				this.dialog.superroledata = JSON.parse(resulta.data.SuperRoleData)
+				app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, IgnoreSeller: true, RoleName: this.dialog.data.RoleName }, (resultb) => {
+					this.dialog.roledata = JSON.parse(resultb.data.RoleData)
+					this.dialog.show_tree = true
+					let treedata = this.getTreeData()
+					this.$refs.authtree.root.setData(treedata.menu)
+					this.dialog.selected = treedata.selected
 				})
 			})
 		},
 		handleDel(index) {
 			this.current_row = index
-			this.dialog_data = this.table_data[this.current_row]
-			if (this.dialog_data.Parent == 'god') {
+			this.dialog.data = this.table_data[this.current_row]
+			if (this.dialog.data.Parent == 'god') {
 				this.$message.error('该角色不可删除')
 				return
 			}
 			if (confirm('确定删除该角色?')) {
 				let data = {
-					SellerId: this.dialog_data.SellerId,
-					RoleName: this.dialog_data.RoleName,
+					SellerId: this.dialog.data.SellerId,
+					RoleName: this.dialog.data.RoleName,
 					IgnoreSeller: true,
 				}
-				app.post('/admin/role/delete', data, (result) => {
-					this.dialog = false
+				app.post('/admin/role/delete', data, () => {
+					this.dialog.show = false
 					this.$message.success('操作成功')
 					this.handleQuery()
 				})
 			}
 		},
 		handleConfirm() {
-			if (!this.dialog_select.RoleName) return this.$message.error('请填写角色名')
-			if (!this.dialog_select.ParentSellerId) return this.$message.error('请选择上角色运营商')
-			if (!this.dialog_select.Parent) return this.$message.error('请选择上级角色')
-			if (!this.dialog_select.SellerId) return this.$message.error('请选择运营商')
+			if (!this.dialog.data.RoleName) return this.$message.error('请填写角色名')
+			if (!this.dialog.data.ParentSellerId) return this.$message.error('请选择上角色运营商')
+			if (!this.dialog.data.Parent) return this.$message.error('请选择上级角色')
+			if (!this.dialog.data.SellerId) return this.$message.error('请选择运营商')
 			let setdisable = (node) => {
 				for (let n in node) {
 					if (typeof node[n] == 'object') {
@@ -239,7 +214,7 @@ export default {
 					}
 				}
 			}
-			let newroledata = app.clone(this.dialog_select.superroledata)
+			let newroledata = app.clone(this.dialog.superroledata)
 			setdisable(newroledata)
 			let selected = this.$refs.authtree.getCheckedNodes()
 			for (let i = 0; i < selected.length; i++) {
@@ -251,28 +226,28 @@ export default {
 				}
 				pn[path[path.length - 1]] = 1
 			}
-			if (this.dialog_type == 'alter') {
+			if (this.dialog.type == 'modify') {
 				let data = {
-					SellerId: this.dialog_select.SellerId,
-					RoleName: this.dialog_select.RoleName,
+					SellerId: this.dialog.data.SellerId,
+					RoleName: this.dialog.data.RoleName,
 					RoleData: JSON.stringify(newroledata),
 				}
-				app.post('/admin/role/update', data, (result) => {
-					this.dialog = false
+				app.post('/admin/role/update', data, () => {
+					this.dialog.show = false
 					this.$message.success('操作成功')
 				})
 			}
-			if (this.dialog_type == 'add') {
+			if (this.dialog.type == 'add') {
 				let data = {
-					ParentSellerId: this.dialog_select.ParentSellerId,
-					Parent: this.dialog_select.Parent,
-					SellerId: this.dialog_select.SellerId,
-					RoleName: this.dialog_select.RoleName,
+					ParentSellerId: this.dialog.data.ParentSellerId,
+					Parent: this.dialog.data.Parent,
+					SellerId: this.dialog.data.SellerId,
+					RoleName: this.dialog.data.RoleName,
 					RoleData: JSON.stringify(newroledata),
 					IgnoreSeller: true,
 				}
-				app.post('/admin/role/add', data, (result) => {
-					this.dialog = false
+				app.post('/admin/role/add', data, () => {
+					this.dialog.show = false
 					this.$message.success('操作成功')
 					this.handleQuery()
 				})
@@ -288,7 +263,7 @@ export default {
 					}
 				}
 			}
-			setdisable(this.dialog_select.superroledata)
+			setdisable(this.dialog.superroledata)
 			let setenable = (parent, node) => {
 				for (let n in node) {
 					if (typeof node[n] == 'object') {
@@ -297,7 +272,7 @@ export default {
 					} else {
 						if (node[n] == 1) {
 							let p = parent.split('.')
-							let pn = this.dialog_select.superroledata
+							let pn = this.dialog.superroledata
 							for (let j = 0; j < p.length; j++) {
 								pn = pn[p[j]]
 							}
@@ -306,9 +281,9 @@ export default {
 					}
 				}
 			}
-			for (let n in this.dialog_select.parentroledata) {
+			for (let n in this.dialog.parentroledata) {
 				let parent = `${n}`
-				setenable(parent, this.dialog_select.parentroledata[n])
+				setenable(parent, this.dialog.parentroledata[n])
 			}
 			let menu = []
 			let submenu = (node, root) => {
@@ -324,7 +299,7 @@ export default {
 					} else {
 						let path = node.path + '.' + n
 						let p = path.split('.')
-						let pr = this.dialog_select.parentroledata
+						let pr = this.dialog.parentroledata
 						for (let i = 0; i < p.length; i++) {
 							pr = pr[p[i]]
 						}
@@ -339,16 +314,16 @@ export default {
 					}
 				}
 			}
-			for (let n in this.dialog_select.superroledata) {
+			for (let n in this.dialog.superroledata) {
 				let node = {
 					path: n,
 					name: n,
 					children: [],
 				}
 				menu.push(node)
-				submenu(node, this.dialog_select.superroledata[n])
+				submenu(node, this.dialog.superroledata[n])
 			}
-			let ids = []
+			let selected = []
 			let getselected = (parent, node) => {
 				for (let n in node) {
 					if (typeof node[n] == 'object') {
@@ -356,14 +331,14 @@ export default {
 						getselected(p, node[n])
 					} else {
 						if (node[n] == 1) {
-							ids.push(`${parent}.${n}`)
+							selected.push(`${parent}.${n}`)
 						}
 					}
 				}
 			}
-			for (let n in this.dialog_select.roledata) {
+			for (let n in this.dialog.roledata) {
 				let parent = `${n}`
-				getselected(parent, this.dialog_select.roledata[n])
+				getselected(parent, this.dialog.roledata[n])
 			}
 			for (let i = 0; i < menu.length; i++) {
 				if (!menu[i].children) continue
@@ -395,7 +370,7 @@ export default {
 					i--
 				}
 			}
-			return { menu, ids }
+			return { menu, selected }
 		},
 	},
 }

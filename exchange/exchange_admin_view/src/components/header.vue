@@ -37,7 +37,7 @@ export default {
 		return {
 			collapse: false,
 			fullscreen: false,
-			name: app.getInfo().NickName,
+			name: app.getInfo().Account,
 			message: 2,
 		}
 	},

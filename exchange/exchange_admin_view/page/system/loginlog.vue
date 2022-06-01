@@ -34,22 +34,16 @@
 <script>
 import { app } from '@/api/app.js'
 import '@/assets/css/k.css'
+import base from '@/api/base.js'
 export default {
+	extends: base,
 	data() {
 		return {
 			filters: {
 				Account: null,
-				SellerId: app.currentSeller(),
 			},
-			zong: app.zong(),
-			seller: app.getSeller(),
-			table_data: null,
-			pagesize: 15,
-			total: 0,
 		}
 	},
-	components: {},
-	computed: {},
 	created() {
 		this.handleQuery(1)
 	},

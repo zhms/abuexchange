@@ -42,24 +42,18 @@
 </template>
 <script>
 import { app } from '@/api/app.js'
+import base from '@/api/base.js'
 import '@/assets/css/k.css'
 export default {
+	extends: base,
 	data() {
 		return {
 			filters: {
 				Account: null,
 				Opt: null,
-				SellerId: app.currentSeller(),
 			},
-			zong: app.zong(),
-			seller: app.getSeller(),
-			table_data: null,
-			pagesize: 15,
-			total: 0,
 		}
 	},
-	components: {},
-	computed: {},
 	created() {
 		this.handleQuery(1)
 	},
@@ -78,8 +72,8 @@ export default {
 			var data = {
 				page: page,
 				pagesize: this.pagesize,
-				Account: this.filters.Account,
-				Opt: this.filters.Opt,
+				Account: this.filters.Account || '',
+				Opt: this.filters.Opt || '',
 				SellerId: this.filters.SellerId || 0,
 			}
 			app.post('/admin/opt_log', data, (result) => {
