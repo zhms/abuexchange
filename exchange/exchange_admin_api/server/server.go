@@ -41,6 +41,7 @@ func Init() {
 		http.Post("/admin/role/add", role_add)
 		http.Post("/admin/role/delete", role_delete)
 		http.Post("/admin/opt_log", opt_log)
+		http.Post("/user/list", user_list)
 	}
 	sql := "select RoleData from x_role where SellerId = -1 and RoleName = '超级管理员'"
 	var dbauthdata string
@@ -212,7 +213,7 @@ func user_login(ctx *abugo.AbuHttpContent) {
 		ctx.RespErr(-1, err.Error())
 		return
 	}
-	sqlstr := "select id,SellerId,`Password`,RoleName,Token,State,GoogleSecret,LoginTime,LoginCount,NickName from x_user where Account = ?"
+	sqlstr := "select id,SellerId,`Password`,RoleName,Token,State,GoogleSecret,LoginTime,LoginCount from x_user where Account = ?"
 	sqlparam := []interface{}{reqdata.Account}
 	var password string
 	var token string
@@ -223,8 +224,7 @@ func user_login(ctx *abugo.AbuHttpContent) {
 	var googlesecret string
 	var logintime string
 	var logincount int
-	var nickname string
-	qserr, qsresult := admindb.QueryScan(sqlstr, sqlparam, &userid, &sellerid, &password, &rolename, &token, &userstate, &googlesecret, &logintime, &logincount, &nickname)
+	qserr, qsresult := admindb.QueryScan(sqlstr, sqlparam, &userid, &sellerid, &password, &rolename, &token, &userstate, &googlesecret, &logintime, &logincount)
 	if qserr != nil {
 		ctx.RespErr(-2, qserr.Error())
 		return
@@ -324,7 +324,6 @@ func user_login(ctx *abugo.AbuHttpContent) {
 	ctx.Put("UserId", userid)
 	ctx.Put("SellerId", sellerid)
 	ctx.Put("Account", reqdata.Account)
-	ctx.Put("NickName", nickname)
 	ctx.Put("AuthData", jauth)
 	ctx.Put("MenuData", menu)
 	ctx.Put("Token", token)
@@ -679,7 +678,7 @@ func role_add(ctx *abugo.AbuHttpContent) {
 		ctx.RespErr(-5, "运营商不正确")
 		return
 	}
-	if reqdata.SellerId != -1 && reqdata.SellerId != reqdata.ParentSellerId {
+	if reqdata.SellerId != -1 && reqdata.SellerId != reqdata.ParentSellerId && reqdata.ParentSellerId != -1 {
 		ctx.RespErr(-5, "上级角色运营商只能是总后台角色或跟自己所属运营商一致,不可以是别的运营商")
 		return
 	}
@@ -789,6 +788,12 @@ func opt_log(ctx *abugo.AbuHttpContent) {
 		ctx.RespErr(-1, err.Error())
 		return
 	}
+	if reqdata.Page == 0 {
+		reqdata.Page = 1
+	}
+	if reqdata.PageSize == 0 {
+		reqdata.PageSize = 10
+	}
 	token := GetToken(ctx)
 	if !Auth2(token, "系统管理", "操作日志", "查") {
 		ctx.RespErr(-300, "权限不足")
@@ -823,6 +828,85 @@ func opt_log(ctx *abugo.AbuHttpContent) {
 		d := opt_log_data_struct{}
 		abugo.GetDbResult(dbresult, &d)
 		d.CreateTime = abugo.TimeToUtc(d.CreateTime)
+		data = append(data, d)
+	}
+	dbresult.Close()
+	ctx.Put("data", data)
+	ctx.Put("page", reqdata.Page)
+	ctx.Put("pagesize", reqdata.PageSize)
+	ctx.Put("total", total)
+	ctx.RespOK()
+}
+
+type user_list_request_struct struct {
+	Page     int
+	PageSize int
+	Account  string
+	SellerId int
+}
+
+type user_list_data_struct struct {
+	Id           int
+	Account      string
+	SellerId     int
+	RoleSellerId int
+	RoleName     string
+	Remark       string
+	State        int
+	LoginCount   int
+	LoginIp      string
+	LoginTime    string
+	CreateTime   string
+}
+
+func user_list(ctx *abugo.AbuHttpContent) {
+	defer recover()
+	reqdata := user_list_request_struct{}
+	err := ctx.RequestData(&reqdata)
+	if err != nil {
+		ctx.RespErr(-1, err.Error())
+		return
+	}
+	if reqdata.Page == 0 {
+		reqdata.Page = 1
+	}
+	if reqdata.PageSize == 0 {
+		reqdata.PageSize = 10
+	}
+	token := GetToken(ctx)
+	if !Auth2(token, "系统管理", "账号管理", "查") {
+		ctx.RespErr(-300, "权限不足")
+		return
+	}
+	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
+		ctx.RespErr(-1, "运营商不正确")
+		return
+	}
+	where := abugo.AbuWhere{}
+	where.AddInt("and", "SellerId", reqdata.SellerId, 0)
+	where.AddString("and", "Account", reqdata.Account, "")
+	var total int
+	admindb.QueryScan(where.CountSql("x_user"), where.Params, &total)
+	if total == 0 {
+		ctx.Put("data", []interface{}{})
+		ctx.Put("page", reqdata.Page)
+		ctx.Put("pagesize", reqdata.PageSize)
+		ctx.Put("total", total)
+		ctx.RespOK()
+		return
+	}
+	dbresult, err := admindb.Conn().Query(where.Sql("x_user", reqdata.Page, reqdata.PageSize), where.GetParams()...)
+	if err != nil {
+		logs.Error(err)
+		ctx.RespErr(-2, err.Error())
+		return
+	}
+	data := []user_list_data_struct{}
+	for dbresult.Next() {
+		d := user_list_data_struct{}
+		abugo.GetDbResult(dbresult, &d)
+		d.CreateTime = abugo.TimeToUtc(d.CreateTime)
+		d.LoginTime = abugo.TimeToUtc(d.LoginTime)
 		data = append(data, d)
 	}
 	dbresult.Close()
