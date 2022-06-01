@@ -62,7 +62,7 @@ export default {
 				page: page,
 				pagesize: this.pagesize,
 			}
-			app.post('/system/login_log', data, (result) => {
+			app.post('/admin/login_log', data, (result) => {
 				this.table_data = result.data.data
 				this.total = result.data.total
 				for (var i = 0; i < this.table_data.length; i++) {

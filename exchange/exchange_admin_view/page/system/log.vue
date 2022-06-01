@@ -4,10 +4,15 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="管理员:">
-					<el-input v-model="filters.NickName" style="width: 150px" :clearable="true"></el-input>
+					<el-input v-model="filters.Account" style="width: 150px" :clearable="true"></el-input>
 				</el-form-item>
 				<el-form-item label="操作:">
-					<el-input v-model="filters.OptType" style="width: 150px" :clearable="true"></el-input>
+					<el-input v-model="filters.Opt" style="width: 150px" :clearable="true"></el-input>
+				</el-form-item>
+				<el-form-item label="运营商:" v-show="zong">
+					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px">
+						<el-option v-for="item in seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+					</el-select>
 				</el-form-item>
 				<el-form-item>
 					<el-button type="primary" v-on:click="handleQuery">查询</el-button>
@@ -17,11 +22,12 @@
 		<!-- 表 -->
 		<div>
 			<el-table :data="table_data" border class="table" max-height="700px" :cell-style="{ padding: '0' }">
-				<el-table-column align="center" prop="id" label="序号" width="80"></el-table-column>
-				<el-table-column align="center" prop="NickName" label="管理员" width="100"></el-table-column>
-				<el-table-column align="center" prop="RecordDate" label="时间" width="160"></el-table-column>
-				<el-table-column align="center" prop="OptIp" label="ip" width="130"></el-table-column>
-				<el-table-column align="center" prop="OptType" label="操作类型" width="200"></el-table-column>
+				<el-table-column align="center" prop="Id" label="序号" width="80"></el-table-column>
+				<el-table-column align="center" prop="Account" label="管理员" width="100"></el-table-column>
+				<el-table-column align="center" prop="SellerName" label="运营商" width="150"></el-table-column>
+				<el-table-column align="center" prop="Ip" label="ip" width="130"></el-table-column>
+				<el-table-column align="center" prop="Opt" label="操作类型" width="200"></el-table-column>
+				<el-table-column align="center" prop="CreateTime" label="时间" width="160"></el-table-column>
 				<el-table-column label="内容">
 					<template slot-scope="scope">
 						<el-button type="text" icon="el-icon-document-copy" @click="handleCopy(scope.$index)">复制</el-button>
@@ -41,9 +47,12 @@ export default {
 	data() {
 		return {
 			filters: {
-				NickName: null,
-				OptType: null,
+				Account: null,
+				Opt: null,
+				SellerId: app.currentSeller(),
 			},
+			zong: app.zong(),
+			seller: app.getSeller(),
 			table_data: null,
 			pagesize: 15,
 			total: 0,
@@ -57,7 +66,7 @@ export default {
 	methods: {
 		handleCopy(index) {
 			var oInput = document.createElement('input')
-			oInput.value = this.table_data[index].RequestData
+			oInput.value = this.table_data[index].Data
 			document.body.appendChild(oInput)
 			oInput.select()
 			document.execCommand('Copy')
@@ -67,16 +76,20 @@ export default {
 		handleQuery(page) {
 			if (typeof page == 'object') page = 1
 			var data = {
-				NickName: this.filters.NickName,
-				OptType: this.filters.OptType,
 				page: page,
 				pagesize: this.pagesize,
+				Account: this.filters.Account,
+				Opt: this.filters.Opt,
+				SellerId: this.filters.SellerId || 0,
 			}
-			app.post('/system/log/query', data, (result) => {
-				this.table_data = result.data
-				this.total = result.total
+			app.post('/admin/opt_log', data, (result) => {
+				this.table_data = result.data.data
+				this.total = result.data.total
 				for (var i = 0; i < this.table_data.length; i++) {
-					this.table_data[i].RecordDate = this.$moment(this.table_data[i].RecordDate).format('YYYY-MM-DD hh:mm:ss')
+					this.table_data[i].CreateTime = this.$moment(this.table_data[i].CreateTime).format('YYYY-MM-DD hh:mm:ss')
+					for (let j = 0; j < this.seller.length; j++) {
+						if (this.seller[j].SellerId == this.table_data[i].SellerId) this.table_data[i].SellerName = this.seller[j].SellerName
+					}
 				}
 			})
 		},

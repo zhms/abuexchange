@@ -11,6 +11,7 @@ package abugo
 	go get github.com/gorilla/websocket
 	go get github.com/jinzhu/gorm
 	go get github.com/imroc/req
+	go get test
 */
 import (
 	"bytes"
@@ -1200,6 +1201,7 @@ func (c *AbuWhere) AddInt(o string, f string, v int, iv int) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1216,6 +1218,7 @@ func (c *AbuWhere) AddInt32(o string, f string, v int32, iv int32) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1232,6 +1235,7 @@ func (c *AbuWhere) AddInt64(o string, f string, v int64, iv int64) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1248,6 +1252,7 @@ func (c *AbuWhere) AddString(o string, f string, v string, iv string) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1264,6 +1269,7 @@ func (c *AbuWhere) AddFloat32(o string, f string, v float32, iv float32) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1280,6 +1286,7 @@ func (c *AbuWhere) AddFloat64(o string, f string, v float64, iv float64) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "

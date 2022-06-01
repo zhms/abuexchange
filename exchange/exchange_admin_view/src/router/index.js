@@ -42,7 +42,7 @@ export default new Router({
 				{ path: '/system_login_log', component: () => import('../../page/system/loginlog.vue'), meta: { title: '登录日志' } },
 				{ path: '/system_account', component: () => import('../../page/system/account.vue'), meta: { title: '账号管理' } },
 				{ path: '/system_role', component: () => import('../../page/system/roles.vue'), meta: { title: '角色管理' } },
-				{ path: '/system_log', component: () => import('../../page/system/log.vue'), meta: { title: '系统日志' } },
+				{ path: '/system_log', component: () => import('../../page/system/log.vue'), meta: { title: '操作日志' } },
 			],
 		},
 	],

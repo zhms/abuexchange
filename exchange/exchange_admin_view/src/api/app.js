@@ -110,10 +110,9 @@ app.post = function (url, data, callback, noloading) {
 	})
 		.then((result) => {
 			if (!noloading) app.showLoading(false)
-			if (result.data.errmsg) {
-				console.log(result.data.errmsg)
+			if (result.data.code != 200) {
 				Message({
-					message: result.data.errmsg,
+					message: result.data.data.errmsg,
 					type: 'error',
 					duration: 1000 * 3,
 					showClose: true,
@@ -136,7 +135,7 @@ app.post = function (url, data, callback, noloading) {
 }
 
 app.login = function (account, password, verifycode, callback) {
-	app.post('/user/login', { account, password, verifycode }, (result) => {
+	app.post('/admin/user/login', { account, password, verifycode }, (result) => {
 		for (let i = 0; i < result.data.MenuData.length; i++) {
 			for (let j = 0; j < result.data.MenuData[i].subs.length; j++) {
 				for (let k = 0; k < result.data.MenuData[i].subs[j].subs.length; k++) {
@@ -220,6 +219,9 @@ app.getSeller = function (callback) {
 }
 
 app.currentSeller = function () {
+	if (!app.zong()) {
+		return app.getInfo().SellerId
+	}
 	if (this.current_seller == null || this.current_seller == undefined) {
 		let savecurrentseller = localStorage.getItem('current_seller')
 		if (savecurrentseller) {
