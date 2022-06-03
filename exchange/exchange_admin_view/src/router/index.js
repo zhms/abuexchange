@@ -26,7 +26,7 @@ export default new Router({
 				//服务管理
 				{ path: '/server_list', component: () => import('../../page/server/list.vue'), meta: { title: '服务列表' } },
 				//营商管理
-				{ path: '/seller_list', component: () => import('../../page/seller/list.vue'), meta: { title: '营商列表' } },
+
 				//个人操盘
 				{ path: '/control_wbdef', component: () => import('../../page/control/wbdef.vue'), meta: { title: '黑白定义' } },
 				{ path: '/control_list', component: () => import('../../page/control/list.vue'), meta: { title: '个控配置' } },
@@ -39,6 +39,7 @@ export default new Router({
 				{ path: '/statistic_game', component: () => import('../../page/statistic/game.vue'), meta: { title: '游戏统计' } },
 				{ path: '/statistic_room', component: () => import('../../page/statistic/room.vue'), meta: { title: '房间统计' } },
 				//系统管理
+				{ path: '/system_seller', component: () => import('../../page/system/seller.vue'), meta: { title: '运营商管理' } },
 				{ path: '/system_login_log', component: () => import('../../page/system/loginlog.vue'), meta: { title: '登录日志' } },
 				{ path: '/system_account', component: () => import('../../page/system/account.vue'), meta: { title: '账号管理' } },
 				{ path: '/system_role', component: () => import('../../page/system/roles.vue'), meta: { title: '角色管理' } },

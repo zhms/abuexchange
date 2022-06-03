@@ -2,6 +2,7 @@ export class app {}
 import { Message, Loading } from 'element-ui'
 import router from '../router'
 import axios from 'axios'
+import moment from 'moment'
 var service = axios.create({
 	//  baseURL: 'http://192.168.2.46:1221/',
 	//	baseURL: 'http://localhost:1221/',
@@ -100,7 +101,10 @@ app.get = function (url, p1, p2) {
 }
 //post请求
 app.post = function (url, data, callback, noloading) {
-	if (!data.IgnoreSeller) app.setCurrentSeller(data.SellerId)
+	if (!data.IgnoreSeller) {
+		app.setCurrentSeller(data.SellerId)
+		delete data.IgnoreSeller
+	}
 	noloading = false
 	if (!noloading) app.showLoading(true)
 	service({
@@ -136,6 +140,7 @@ app.post = function (url, data, callback, noloading) {
 
 app.login = function (account, password, verifycode, callback) {
 	app.post('/admin/user/login', { account, password, verifycode }, (result) => {
+		app.setCurrentSeller(0)
 		for (let i = 0; i < result.data.MenuData.length; i++) {
 			for (let j = 0; j < result.data.MenuData[i].subs.length; j++) {
 				for (let k = 0; k < result.data.MenuData[i].subs[j].subs.length; k++) {
@@ -158,7 +163,7 @@ app.login = function (account, password, verifycode, callback) {
 		sessionStorage.setItem('userdata', JSON.stringify(result.data))
 		sessionStorage.setItem('token', result.data.Token)
 		if (result.data.SellerId == -1) {
-			app.post('/seller/list', {}, (result) => {
+			app.post('/seller/name', {}, (result) => {
 				sessionStorage.setItem('seller', JSON.stringify(result.data))
 				this.seller = result.data
 				callback()
@@ -217,7 +222,19 @@ app.getSeller = function (callback) {
 	}
 	return this.seller
 }
-
+app.getSellerNoAll = function (callback) {
+	if (!this.seller_noall) {
+		try {
+			this.seller_noall = JSON.parse(sessionStorage.getItem('seller'))
+			for (let i = 0; i < this.seller_noall.length; i++) {
+				if (this.seller_noall[i].SellerId == 0) {
+					this.seller_noall.splice(i, 1)
+				}
+			}
+		} catch (e) {}
+	}
+	return this.seller_noall
+}
 app.currentSeller = function () {
 	if (!app.zong()) {
 		return app.getInfo().SellerId

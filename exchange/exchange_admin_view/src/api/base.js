@@ -7,6 +7,8 @@ export default {
 			},
 			zong: app.zong(),
 			seller: app.getSeller(),
+			seller_noall: app.getSellerNoAll(),
+			page: 1,
 			pagesize: 15,
 			total: 0,
 			table_data: null,

@@ -49,11 +49,12 @@ export default {
 	},
 	methods: {
 		handleQuery(page) {
-			if (typeof page == 'object') page = 1
+			this.page = page || 1
+			if (typeof this.page == 'object') this.page = 1
 			var data = {
 				Account: this.filters.Account || '',
 				SellerId: parseInt(this.filters.SellerId || 0),
-				page: page,
+				page: this.page,
 				pagesize: this.pagesize,
 			}
 			app.post('/admin/login_log', data, (result) => {

@@ -13,7 +13,7 @@
 				</el-form-item>
 				<el-form-item>
 					<el-button type="primary" icon="el-icon-refresh" class="mr10" @click="handleQuery">查询</el-button>
-					<el-button type="primary" icon="el-icon-plus" class="mr10" v-show="auth('增')" @click="handleAdd">添加</el-button>
+					<el-button type="primary" icon="el-icon-plus" class="mr10" v-show="auth2('增')" @click="handleAdd">添加</el-button>
 				</el-form-item>
 			</el-form>
 		</div>
@@ -37,8 +37,9 @@
 				<el-table-column align="center" prop="Remark" label="备注" width="300"></el-table-column>
 				<el-table-column label="操作">
 					<template slot-scope="scope">
-						<el-button type="text" icon="el-icon-edit" v-show="auth('改')" @click="handleModify(scope.$index)">编辑</el-button>
-						<el-button type="text" icon="el-icon-delete" class="red" v-show="auth('删')" @click="handleDel(scope.$index)">删除</el-button>
+						<el-button type="text" icon="el-icon-eleme" class="primary" v-show="auth2('改')" @click="handleChangeGoogle(scope.$index)">谷歌</el-button>
+						<el-button type="text" icon="el-icon-edit" v-show="auth2('改')" @click="handleModify(scope.$index)">编辑</el-button>
+						<el-button type="text" icon="el-icon-delete" class="red" v-show="auth2('删')" @click="handleDel(scope.$index)">删除</el-button>
 					</template>
 				</el-table-column>
 			</el-table>
@@ -54,19 +55,21 @@
 						<el-input v-model="dialog.data.Account" :disabled="dialog.type == 'modify'"></el-input>
 					</el-form-item>
 					<el-form-item label="运营商:">
-						<el-input v-model="dialog.data.SellerName" style="width: 200px" :disabled="dialog.type == 'modify'"></el-input>
+						<el-select v-model="dialog.data.SellerId" placeholder="运营商" style="width: 150px" :disabled="dialog.type == 'modify'">
+							<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+						</el-select>
 					</el-form-item>
 					<el-form-item label="密码:">
 						<el-input v-model="dialog.data.Password" show-password style="width: 200px"></el-input>
 					</el-form-item>
 					<el-form-item label="角色运营商:" v-show="zong">
-						<el-select v-model="dialog.data.RoleSellerId" placeholder="运营商" style="width: 130px" @change="handleSelectRoleSeller">
-							<el-option v-for="item in dialog.options.RoleSellers" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+						<el-select v-model="dialog.data.RoleSellerId" placeholder="运营商" style="width: 150px" @change="handleSelectRoleSeller">
+							<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 						</el-select>
 					</el-form-item>
 					<el-form-item label="角色:">
 						<el-select v-model="dialog.data.RoleName" placeholder="请选择" style="width: 200px">
-							<el-option v-for="item in dialog.options.RoleNames" :key="item.RoleName" :label="item.RoleName" :value="item.RoleName"></el-option>
+							<el-option v-for="item in dialog.options.role" :key="item.RoleName" :label="item.RoleName" :value="item.RoleName"></el-option>
 						</el-select>
 					</el-form-item>
 				</el-form>
@@ -85,12 +88,18 @@
 				</span>
 			</el-dialog>
 		</div>
+		<div>
+			<el-dialog :title="dialog_google.title" :visible.sync="dialog_google.show" width="350px" center>
+				<vueqr :text="dialog_google.url" :size="300"> </vueqr>
+			</el-dialog>
+		</div>
 	</div>
 </template>
 <script>
 import { app } from '@/api/app.js'
 import base from '@/api/base.js'
 import '@/assets/css/k.css'
+import vueqr from 'vue-qr'
 export default {
 	extends: base,
 	data() {
@@ -98,39 +107,69 @@ export default {
 			filters: {
 				Account: null,
 			},
+			dialog_google: {
+				show: false,
+				title: '谷歌验证码',
+				url: '',
+			},
+
 			dialog: {
 				options: {
-					RoleNames: [],
-					RoleSellers: [],
+					role: [],
+				},
+				data: {
+					Account: null,
+					SellerId: null,
+					Password: null,
+					RoleSellerId: null,
+					RoleName: null,
+					State: 1,
+					Remark: null,
 				},
 			},
 		}
+	},
+	components: {
+		vueqr,
 	},
 	created() {
 		this.handleQuery(1)
 	},
 	methods: {
-		auth(o) {
+		auth2(o) {
 			return app.auth2('系统管理', '账号管理', o)
 		},
 		handleSelectRoleSeller() {
 			this.dialog.data.RoleName = null
 			app.post('/admin/role/listall', { SellerId: this.dialog.data.RoleSellerId, IgnoreSeller: true }, (result) => {
-				this.dialog.options.RoleNames = []
+				this.dialog.options.role = []
 				for (let i = 0; i < result.data.length; i++) {
-					this.dialog.options.RoleNames.push({ RoleName: result.data[i] })
+					this.dialog.options.role.push({ RoleName: result.data[i] })
 				}
 			})
 		},
+		handleChangeGoogle(index) {
+			if (confirm('确定更换谷歌验证码?')) {
+				let data = {
+					Account: this.table_data[index].Account,
+					SellerId: this.table_data[index].SellerId,
+				}
+				app.post('/admin/user/google', data, (result) => {
+					this.dialog_google.url = result.data
+					this.dialog_google.show = true
+				})
+			}
+		},
 		handleQuery(page) {
-			if (typeof page == 'object') page = 1
+			this.page = page || 1
+			if (typeof this.page == 'object') this.page = 1
 			var data = {
-				page: page,
+				page: this.page,
 				pagesize: this.pagesize,
 				Account: this.filters.Account || '',
 				SellerId: parseInt(this.filters.SellerId || 0),
 			}
-			app.post('/user/list', data, (result) => {
+			app.post('/admin/user/list', data, (result) => {
 				this.total = result.data.total
 				this.table_data = result.data.data
 				for (var i = 0; i < this.table_data.length; i++) {
@@ -144,51 +183,78 @@ export default {
 			})
 		},
 		handleAdd() {
-			this.dialog_data = { IsDisabled: 0 }
-			this.dialog_title = '添加账号'
-			this.dialog = true
+			this.dialog.data.Account = null
+			this.dialog.data.SellerId = null
+			this.dialog.data.Password = null
+			this.dialog.data.RoleSellerId = null
+			this.dialog.data.RoleName = null
+			this.dialog.data.Remark = null
+			this.dialog.data.State = 1
+			this.dialog.title = '添加账号'
+			this.dialog.type = 'add'
+			this.dialog.show = true
 		},
 		handleModify(index) {
 			this.current_row = index
 			this.dialog.title = '修改账号'
 			this.dialog.data = app.clone(this.table_data[index])
 			this.dialog.type = 'modify'
-			this.dialog.options.RoleSellers = app.clone(this.seller)
 			let v = this.dialog.data.RoleName
 			this.handleSelectRoleSeller()
 			this.dialog.data.RoleName = v
-			for (let i = 0; i < this.dialog.options.RoleSellers.length; i++) {
-				if (this.dialog.options.RoleSellers[i].SellerId == 0) {
-					this.dialog.options.RoleSellers.splice(i, 1)
-				}
-			}
 			this.dialog.show = true
 		},
 		handleDel(index) {
-			if (confirm('确定删除该配置?')) {
-				app.post('/system/account/delete', { Account: this.table_data[index].Account }, (data) => {
+			if (confirm('确定删除该账号?')) {
+				let data = {
+					Id: this.table_data[index].Id,
+					Account: this.table_data[index].Account,
+					SellerId: this.table_data[index].SellerId,
+				}
+				app.post('/admin/user/delete', data, () => {
 					this.table_data.splice(index, 1)
+					this.table_data = app.clone(this.table_data)
 					this.$message.success('操作成功')
 				})
 			}
 		},
 		handleConfirm() {
-			//if(this.dialog_data.)
-			// if (this.dialog_title == '修改账号') {
-			// 	app.post('/system/account/modify', this.dialog_data, () => {
-			// 		this.table_data[this.current_row] = app.clone(this.dialog_data)
-			// 		this.dialog = false
-			// 		this.$message.success('操作成功')
-			// 	})
-			// }
-			// if (this.dialog_title == '添加账号') {
-			// 	app.post('/system/account/add', this.dialog_data, (data) => {
-			// 		this.dialog_data.AdminId = data.AdminId
-			// 		this.table_data.push(this.dialog_data)
-			// 		this.dialog = false
-			// 		this.$message.success('操作成功')
-			// 	})
-			// }
+			if (this.dialog.type == 'modify') {
+				let data = {
+					Account: this.dialog.data.Account,
+					SellerId: this.dialog.data.SellerId,
+					Remark: this.dialog.data.Remark,
+					RoleSellerId: this.dialog.data.RoleSellerId,
+					State: this.dialog.data.State,
+					RoleName: this.dialog.data.RoleName,
+				}
+				if (this.dialog.data.Password && this.dialog.data.Password.length > 0) {
+					data.Password = this.$md5(this.dialog.data.Password)
+				}
+				app.post('/admin/user/modify', data, () => {
+					this.dialog.show = false
+					this.$message.success('操作成功')
+					this.handleQuery(this.page)
+				})
+			}
+			if (this.dialog.type == 'add') {
+				let data = {
+					Account: this.dialog.data.Account,
+					SellerId: this.dialog.data.SellerId,
+					Remark: this.dialog.data.Remark,
+					RoleSellerId: this.dialog.data.RoleSellerId,
+					State: this.dialog.data.State,
+					RoleName: this.dialog.data.RoleName,
+				}
+				if (this.dialog.data.Password && this.dialog.data.Password.length > 0) {
+					data.Password = this.$md5(this.dialog.data.Password)
+				}
+				app.post('/admin/user/add', data, () => {
+					this.dialog.show = false
+					this.$message.success('操作成功')
+					this.handleQuery(this.page)
+				})
+			}
 		},
 	},
 }

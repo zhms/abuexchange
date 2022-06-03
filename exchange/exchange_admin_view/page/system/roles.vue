@@ -39,7 +39,7 @@
 						</el-form-item>
 						<el-form-item label="上级运营商:" v-show="zong">
 							<el-select v-model="dialog.data.ParentSellerId" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'" @change="handleDialogSelectParentSellerId">
-								<el-option v-for="item in dialog.options.seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+								<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 							</el-select>
 						</el-form-item>
 						<el-form-item label="上级角色:" v-show="zong">
@@ -49,7 +49,7 @@
 						</el-form-item>
 						<el-form-item label="运营商:" v-show="zong" style="margin-left: 30px">
 							<el-select v-model="dialog.data.SellerId" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'">
-								<el-option v-for="item in dialog.options.seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
+								<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 							</el-select>
 						</el-form-item>
 					</el-form>
@@ -83,7 +83,6 @@ export default {
 					SellerId: null,
 				},
 				options: {
-					seller: [],
 					Parents: [],
 				},
 			},
@@ -121,10 +120,11 @@ export default {
 			})
 		},
 		handleQuery(page) {
-			if (typeof page == 'object') page = 1
+			this.page = page || 1
+			if (typeof this.page == 'object') this.page = 1
 			var data = {
 				SellerId: parseInt(this.filters.SellerId || 0),
-				page: page,
+				page: this.page,
 				pagesize: this.pagesize,
 			}
 			app.post('/admin/role/list', data, (result) => {
@@ -145,12 +145,6 @@ export default {
 			this.dialog.data.ParentSellerId = null
 			this.dialog.data.Parent = null
 			this.dialog.data.RoleName = null
-			this.dialog.options.seller = app.clone(this.seller)
-			for (let i = 0; i < this.dialog.options.seller.length; i++) {
-				if (this.dialog.options.seller[i].SellerId == 0) {
-					this.dialog.options.seller.splice(i, 1)
-				}
-			}
 			this.dialog.show_tree = false
 			this.dialog.show = true
 		},
@@ -161,14 +155,13 @@ export default {
 				return
 			}
 			this.dialog.data = app.clone(this.table_data[this.current_row])
-			this.dialog.options.seller = app.clone(this.seller)
 			this.dialog.title = `修改角色`
 			this.dialog.type = 'modify'
 			this.dialog.show = true
 			setTimeout(() => {
 				this.$refs.authtree.root.setData([])
 			}, 10)
-			app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, IgnoreSeller: true, RoleName: this.dialog.data.Parent }, (resulta) => {
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, IgnoreSeller: true, RoleName: this.dialog.data.Parent }, (resulta) => {
 				this.dialog.parentroledata = JSON.parse(resulta.data.RoleData)
 				this.dialog.superroledata = JSON.parse(resulta.data.SuperRoleData)
 				app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, IgnoreSeller: true, RoleName: this.dialog.data.RoleName }, (resultb) => {
@@ -196,7 +189,7 @@ export default {
 				app.post('/admin/role/delete', data, () => {
 					this.dialog.show = false
 					this.$message.success('操作成功')
-					this.handleQuery()
+					this.handleQuery(this.page)
 				})
 			}
 		},
@@ -232,9 +225,10 @@ export default {
 					RoleName: this.dialog.data.RoleName,
 					RoleData: JSON.stringify(newroledata),
 				}
-				app.post('/admin/role/update', data, () => {
+				app.post('/admin/role/modify', data, () => {
 					this.dialog.show = false
 					this.$message.success('操作成功')
+					this.handleQuery(this.page)
 				})
 			}
 			if (this.dialog.type == 'add') {
@@ -249,7 +243,7 @@ export default {
 				app.post('/admin/role/add', data, () => {
 					this.dialog.show = false
 					this.$message.success('操作成功')
-					this.handleQuery()
+					this.handleQuery(this.page)
 				})
 			}
 		},

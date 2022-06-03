@@ -1,6 +1,6 @@
 package server
 
-var MenuData string = `[
+var MenuDataStr string = `[
 	{
 		"icon": "el-icon-lx-home",
 		"index": "home",
@@ -12,6 +12,10 @@ var MenuData string = `[
 		"title": "系统管理",
 		"subs":
 		[
+			{
+				"index": "system_seller",
+				"title": "运营商管理"
+			},
 			{
 				"index": "system_account",
 				"title": "账号管理"
@@ -32,9 +36,10 @@ var MenuData string = `[
 	}
 ]`
 
-var AuthData = `{
+var AuthDataStr = `{
 	"系统首页": { "查" : 1 },
 	"系统管理": {
+		"运营商管理": { "查": 1,"增": 1,"删": 1,"改": 1},
 		"账号管理": { "查": 1,"增": 1,"删": 1,"改": 1},
 		"角色管理": { "查": 1,"增": 1,"删": 1,"改": 1},
 		"登录日志": { "查": 1},

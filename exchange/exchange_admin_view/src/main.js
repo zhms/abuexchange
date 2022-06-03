@@ -9,7 +9,9 @@ import 'babel-polyfill'
 import { app } from './api/app.js'
 import axios from 'axios'
 import moment from 'moment'
+import md5 from 'js-md5'
 Vue.prototype.$moment = moment
+Vue.prototype.$md5 = md5
 Vue.config.productionTip = false
 Vue.use(ElementUI, {
 	size: 'small',

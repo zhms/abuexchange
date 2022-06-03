@@ -15,7 +15,7 @@
 					</el-select>
 				</el-form-item>
 				<el-form-item>
-					<el-button type="primary" v-on:click="handleQuery">查询</el-button>
+					<el-button type="primary" icon="el-icon-refresh" v-on:click="handleQuery">查询</el-button>
 				</el-form-item>
 			</el-form>
 		</div>
@@ -68,9 +68,10 @@ export default {
 			this.$message.success('复制成功')
 		},
 		handleQuery(page) {
-			if (typeof page == 'object') page = 1
+			this.page = page || 1
+			if (typeof this.page == 'object') this.page = 1
 			var data = {
-				page: page,
+				page: this.page,
 				pagesize: this.pagesize,
 				Account: this.filters.Account || '',
 				Opt: this.filters.Opt || '',
