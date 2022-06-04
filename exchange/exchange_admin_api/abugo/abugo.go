@@ -304,15 +304,6 @@ func (c *AbuHttpContent) RequestData(obj interface{}) error {
 	c.gin.ShouldBindJSON(obj)
 	validator := val.New()
 	err := validator.Struct(obj)
-	// if err != nil {
-	// 	err := err.(val.ValidationErrors)
-	// 	for _, e := range err {
-	// 		errs = append(errs, &ValidError{
-	// 			Message: ,
-	// 		})
-	// 	}
-	// 	return false, errs
-	// }
 	return err
 }
 
