@@ -140,7 +140,6 @@ app.post = function (url, data, callback, noloading) {
 
 app.login = function (account, password, verifycode, callback) {
 	app.post('/admin/user/login', { account, password, verifycode }, (result) => {
-		app.setCurrentSeller(0)
 		for (let i = 0; i < result.data.MenuData.length; i++) {
 			for (let j = 0; j < result.data.MenuData[i].subs.length; j++) {
 				for (let k = 0; k < result.data.MenuData[i].subs[j].subs.length; k++) {
@@ -162,6 +161,7 @@ app.login = function (account, password, verifycode, callback) {
 		}
 		sessionStorage.setItem('userdata', JSON.stringify(result.data))
 		sessionStorage.setItem('token', result.data.Token)
+		app.setCurrentSeller(result.data.SellerId)
 		if (result.data.SellerId == -1) {
 			app.post('/seller/name', {}, (result) => {
 				sessionStorage.setItem('seller', JSON.stringify(result.data))

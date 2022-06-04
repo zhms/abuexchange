@@ -7,6 +7,6 @@ import (
 
 func main() {
 	server.Init()
-	new(controller.SellerController).Init()
+	new(controller.UserController).Init()
 	server.Run()
 }

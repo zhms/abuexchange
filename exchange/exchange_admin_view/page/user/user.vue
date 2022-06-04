@@ -3,20 +3,22 @@
 		<!-- 筛选 -->
 		<div>
 			<el-form :inline="true" :model="filters">
-				<el-form-item label="筛选:">
-					<el-input v-model="filters.userid_or_account" style="width: 200px" :clearable="true" placeholder="玩家id | 账号"></el-input>
+				<el-form-item label="账号:">
+					<el-input v-model="filters.Account" style="width: 120px" :clearable="true" placeholder="账号"></el-input>
+				</el-form-item>
+				<el-form-item label="Id:">
+					<el-input v-model="filters.UserId" style="width: 120px" :clearable="true" placeholder="玩家id"></el-input>
 				</el-form-item>
 				<el-form-item>
-					<el-button type="primary" v-on:click="handleQuery">查询</el-button>
-					<el-button type="primary" icon="el-icon-refresh" class="mr10" @click="handleQuery">刷新</el-button>
+					<el-button type="primary" icon="el-icon-refresh" class="mr10" @click="handleQuery">查询</el-button>
 				</el-form-item>
 			</el-form>
 		</div>
 		<!--表-->
 		<div>
 			<el-table :data="table_data" border max-height="620px" class="table" :cell-style="{ padding: '0' }">
+				<el-table-column align="center" prop="Id" label="id" width="80"></el-table-column>
 				<el-table-column align="center" prop="UserId" label="玩家id" width="100"></el-table-column>
-				<el-table-column align="center" prop="SellerId" label="运营商" width="80"></el-table-column>
 				<el-table-column align="center" prop="Account" label="账号" width="120"></el-table-column>
 				<el-table-column align="center" label="昵称" width="130">
 					<template slot-scope="scope">
@@ -28,7 +30,7 @@
 				<el-table-column align="center" prop="Agent" label="代理" width="100"></el-table-column>
 				<el-table-column align="center" prop="RegIp" label="注册Ip" width="120"></el-table-column>
 				<el-table-column align="center" prop="RegOs" label="平台" width="100"></el-table-column>
-				<el-table-column align="center" prop="RegTime" label="注册时间" width="160"></el-table-column>
+				<el-table-column align="center" prop="RegisterTime" label="注册时间" width="160"></el-table-column>
 			</el-table>
 		</div>
 		<div class="pagination">
@@ -153,15 +155,15 @@
 <script>
 import { app } from '@/api/app.js'
 import '@/assets/css/k.css'
+import base from '@/api/base.js'
 export default {
+	extends: base,
 	data() {
 		return {
 			filters: {
-				userid_or_account: null,
+				Account: null,
+				UserId: null,
 			},
-			table_data: [],
-			pagesize: 10,
-			total: 0,
 			activeName: '0',
 			dialog: false,
 			dialog_title: '',
@@ -188,19 +190,27 @@ export default {
 			this.dialog_data_copy = app.clone(this.dialog_data)
 		},
 		handleQuery(page) {
-			if (typeof page != 'number') page = 1
+			this.page = page || 1
+			if (typeof this.page != 'number') this.page = 1
 			var data = {
-				page: page,
-				pagesize: 10,
-				userid_or_account: this.filters.userid_or_account,
+				page: this.page,
+				pagesize: this.pagesize,
+				SellerId: app.getInfo().SellerId,
+				Account: this.filters.Account,
+				UserId: parseInt(this.filters.UserId),
 			}
-			app.post('/user/account/query', data, (result) => {
-				this.table_data = result.data
-				this.total = result.total
+			app.post('/user/list', data, (result) => {
+				this.table_data = result.data.data
+				this.total = result.data.total
 				for (var i = 0; i < this.table_data.length; i++) {
-					this.table_data[i].LastLoginTime = this.$moment(this.table_data[i].LastLoginTime).format('YYYY-MM-DD hh:mm:ss')
-					this.table_data[i].RegTime = this.$moment(this.table_data[i].RegTime).format('YYYY-MM-DD hh:mm:ss')
+					for (let j = 0; j < this.seller.length; j++) {
+						if (this.seller[j].SellerId == this.table_data[i].SellerId) this.table_data[i].SellerName = this.seller[j].SellerName
+					}
+					this.table_data[i].RegisterTime = this.$moment(this.table_data[i].RegisterTime).format('YYYY-MM-DD hh:mm:ss')
+					// this.table_data[i].RegTime = this.$moment(this.table_data[i].RegTime).format('YYYY-MM-DD hh:mm:ss')
 				}
+				console.log(this.seller)
+				console.log(this.table_data)
 			})
 		},
 		handleLook(index) {

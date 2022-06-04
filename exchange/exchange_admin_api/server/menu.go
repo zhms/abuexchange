@@ -7,6 +7,17 @@ var MenuDataStr string = `[
 		"title": "系统首页"
 	},
 	{
+		"icon": "el-icon-user-solid",
+		"index": "0",
+		"title": "玩家管理",
+		"subs": [
+			{
+				"title": "账号管理",
+				"index": "user_list"
+			}
+		]
+	},
+	{
 		"icon": "el-icon-setting",
 		"index": "7",
 		"title": "系统管理",
@@ -38,6 +49,9 @@ var MenuDataStr string = `[
 
 var AuthDataStr = `{
 	"系统首页": { "查" : 1 },
+	"玩家管理": {
+		"账号管理": { "查": 1,"增": 1,"删": 1,"改": 1}
+	},
 	"系统管理": {
 		"运营商管理": { "查": 1,"增": 1,"删": 1,"改": 1},
 		"账号管理": { "查": 1,"增": 1,"删": 1,"改": 1},

@@ -16,7 +16,7 @@ export default new Router({
 				//首页
 				{ path: '/home', component: () => import('../../page/home.vue'), meta: { title: '系统首页' } },
 				//玩家管理
-				{ path: '/user_user', component: () => import('../../page/user/user.vue'), meta: { title: '账号管理' } },
+				{ path: '/user_list', component: () => import('../../page/user/user.vue'), meta: { title: '账号管理' } },
 				{ path: '/score_change_list', component: () => import('../../page/user/scorelist.vue'), meta: { title: '金流记录' } },
 				//游戏管理
 				{ path: '/game_game', component: () => import('../../page/game/game.vue'), meta: { title: '游戏列表' } },
