@@ -10,332 +10,788 @@ import (
 	账号:admin
 	密码:admin
 */
+var DbPrefix = "ex_"
+var db_asset_tablename = fmt.Sprintf("%sasset", DbPrefix)
+var db_config_tablename = fmt.Sprintf("%sconfig", DbPrefix)
+var db_error_tablename = fmt.Sprintf("%serror", DbPrefix)
+var db_seller_tablename = fmt.Sprintf("%sseller", DbPrefix)
+var db_user_tablename = fmt.Sprintf("%suser", DbPrefix)
+var db_verify_tablename = fmt.Sprintf("%sverify", DbPrefix)
+var db_transfer_in_tablename = fmt.Sprintf("%stransfer_in", DbPrefix)
+var db_transfer_out_tablename = fmt.Sprintf("%stransfer_out", DbPrefix)
+var db_asset_change_reason_tablename = fmt.Sprintf("%sasset_change_reason", DbPrefix)
+var db_asset_log_tablename = fmt.Sprintf("%sasset_log", DbPrefix)
+var replace_symbol = "2416796325297210"
+
+func replace_sql(sql string) string {
+	sql = strings.Replace(sql, "2416796325297210", "`", -1)
+	sql = strings.Replace(sql, "ex_asset", db_asset_tablename, -1)
+	sql = strings.Replace(sql, "ex_config", db_config_tablename, -1)
+	sql = strings.Replace(sql, "ex_error", db_error_tablename, -1)
+	sql = strings.Replace(sql, "ex_seller", db_seller_tablename, -1)
+	sql = strings.Replace(sql, "ex_user", db_user_tablename, -1)
+	sql = strings.Replace(sql, "ex_verify", db_verify_tablename, -1)
+	sql = strings.Replace(sql, "ex_transfer_in", db_transfer_in_tablename, -1)
+	sql = strings.Replace(sql, "ex_transfer_out", db_transfer_out_tablename, -1)
+	sql = strings.Replace(sql, "ex_sasset_change_reason", db_asset_change_reason_tablename, -1)
+	sql = strings.Replace(sql, "ex_asset_log", db_asset_log_tablename, -1)
+	sql = strings.Replace(sql, "ex_", DbPrefix, -1)
+	return sql
+}
 
 func SetupDatabase() {
-	var sql string = ""
-	sql = sql + "CREATE TABLE IF NOT EXISTS `ex_config` ("
-	sql = sql + "`SellerId` int(11) NOT NULL COMMENT '运营商',"
-	sql = sql + "`ConfigName` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '配置名称',"
-	sql = sql + "`ConfigValue` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '配置值',"
-	sql = sql + "`Remark` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '注释',"
-	sql = sql + "PRIMARY KEY (`SellerId`, `ConfigName`) USING BTREE"
-	sql = sql + ") ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;"
-	Db().QueryNoResult(sql)
-	sql = "INSERT IGNORE INTO `ex_config` VALUES (1, 'SystemOpen', '1', '系统是否开放 1开放 2关闭');"
-	Db().QueryNoResult(sql)
-	sql = "INSERT IGNORE INTO `ex_config` VALUES (1, 'Verify', '0', '是否开启验证码 1开启 2关闭');"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `ex_error`  ("
-	sql += "`Id` bigint(11) NOT NULL AUTO_INCREMENT,"
-	sql += " `FunName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,"
-	sql += "`ErrCode` int(255) NOT NULL,"
-	sql += "`ErrMsg` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,"
-	sql += "  `CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),"
-	sql += "  PRIMARY KEY (`Id`) USING BTREE"
-	sql += ") ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `ex_seller`  ("
-	sql += "`SellerId` int(11) NOT NULL AUTO_INCREMENT COMMENT '运营商',"
-	sql += "`SellerName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '运营名称',"
-	sql += "`State` int(255) NULL DEFAULT 1 COMMENT '状态 1启用 2禁用',"
-	sql += "`Remark` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',"
-	sql += "`CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',"
-	sql += "PRIMARY KEY (`SellerId`) USING BTREE"
-	sql += ") ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `ex_user`  ("
-	sql += " `Id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'id',"
-	sql += "`UserId` int(11) NOT NULL COMMENT '玩家',"
-	sql += "`SellerId` int(11) NULL DEFAULT NULL COMMENT '运营商',"
-	sql += "`Account` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '账号',"
-	sql += "`Password` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录密码',"
-	sql += "`Email` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '绑定邮箱',"
-	sql += "`NickName` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '昵称',"
-	sql += "`PhoneNum` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '绑定手机',"
-	sql += "`Token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录token',"
-	sql += "`RegisterIp` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '注册ip',\r\n"
-	sql += "`RegisterTime` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '注册时间',"
-	sql += "PRIMARY KEY (`UserId`) USING BTREE,"
-	sql += "INDEX `Id`(`Id`) USING BTREE,"
-	sql += "UNIQUE INDEX `Account`(`Account`, `SellerId`) USING BTREE"
-	sql += ") ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `ex_verify`  ("
-	sql += "`Account` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '账号',"
-	sql += "`SellerId` int(11) NOT NULL COMMENT '运营商',"
-	sql += "`UseType` int(255) NOT NULL COMMENT '使用途径 1注册 2登录',"
-	sql += "`VerifyCode` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '验证码',"
-	sql += "`CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0),"
-	sql += "PRIMARY KEY (`Account`, `SellerId`, `UseType`) USING BTREE"
-	sql += ") ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;"
-	Db().QueryNoResult(sql)
-
-	sql = "	CREATE TABLE IF NOT EXISTS `z_admin_login_log`  ("
-	sql += "`Id` int(11) NOT NULL AUTO_INCREMENT,"
-	sql += "`UserId` int(11) NULL DEFAULT NULL COMMENT '管理员id',"
-	sql += "`SellerId` int(11) NULL DEFAULT NULL COMMENT '运营商',"
-	sql += "`Account` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '管理员账号',"
-	sql += "`Token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '当次登录token',"
-	sql += "`LoginIp` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录ip',"
-	sql += "`CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '登录时间',"
-	sql += "PRIMARY KEY (`Id`) USING BTREE,"
-	sql += "INDEX `Account`(`Account`) USING BTREE,"
-	sql += "INDEX `SellerId`(`SellerId`) USING BTREE"
-	sql += ") ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `z_admin_opt_log`  ("
-	sql += "`Id` int(11) NOT NULL AUTO_INCREMENT,"
-	sql += "`Account` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '操作账号',"
-	sql += "`SellerId` int(11) NOT NULL DEFAULT -1 COMMENT '账号所属运营商',"
-	sql += "`Opt` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '操作类型',"
-	sql += "`Ip` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '操作ip',"
-	sql += "`Token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '请求token',"
-	sql += "`Data` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '请求数据',"
-	sql += "`CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',"
-	sql += "PRIMARY KEY (`Id`) USING BTREE,"
-	sql += "INDEX `Account`(`Account`) USING BTREE,"
-	sql += "INDEX `Opt`(`Opt`) USING BTREE"
-	sql += ") ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `z_admin_role`  ("
-	sql += "`Id` int(11) NOT NULL AUTO_INCREMENT,"
-	sql += "`RoleName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,"
-	sql += "`SellerId` int(11) NOT NULL,"
-	sql += "`ParentSellerId` int(11) NOT NULL COMMENT '上级角色运营商',"
-	sql += "`Parent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '上级角色',"
-	sql += "`RoleData` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色数据',"
-	sql += "`CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',"
-	sql += "PRIMARY KEY (`RoleName`, `SellerId`) USING BTREE,"
-	sql += "UNIQUE INDEX `id`(`Id`) USING BTREE"
-	sql += ") ENGINE = InnoDB AUTO_INCREMENT = 29 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;"
-	Db().QueryNoResult(sql)
-
+	var sql = `CREATE TABLE IF NOT EXISTS ex_asset  (
+				UserId int(11) NOT NULL COMMENT '玩家',
+				SellerId int(11) NOT NULL COMMENT '运营商',
+				AssetType int(11) NOT NULL COMMENT '钱包类型 1平台 ',
+				Symbol varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '币种',
+				AssetAmt bigint(20) NOT NULL DEFAULT 0 COMMENT '钱包余额',
+				FrozenAmt bigint(20) NOT NULL DEFAULT 0 COMMENT '冻结余额',
+				CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+				PRIMARY KEY (UserId, AssetType, Symbol) USING BTREE
+			  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_asset_change_reason  (
+			Id int(11) NOT NULL COMMENT 'id',
+			Description varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '描述',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+			PRIMARY KEY (Id) USING BTREE
+		   ) ENGINE = MyISAM AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_asset_log  (
+			Id int(11) NOT NULL COMMENT 'id',
+			UserId int(11) NOT NULL COMMENT '玩家id',
+			BeforeAmount bigint(255) NOT NULL COMMENT '变化前',
+			ChangeAmount bigint(255) NOT NULL COMMENT '变化值',
+			AfterAmount bigint(255) NOT NULL COMMENT '变化后',
+			Reason int(255) NOT NULL COMMENT '变化原因',
+			Extra varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '额外信息',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '变化时间',
+			PRIMARY KEY (Id) USING BTREE,
+			INDEX UserId(UserId) USING BTREE
+		) ENGINE = MyISAM AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_config  (
+			SellerId int(11) NOT NULL COMMENT '运营商',
+			ConfigName varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '配置名称',
+			ConfigValue varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '配置值',
+			Remark varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '注释',
+			PRIMARY KEY (SellerId, ConfigName) USING BTREE
+		  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `INSERT IGNORE INTO ex_config VALUES (1, 'SystemOpen', '1', '系统是否开放 1开放 2关闭');`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `INSERT IGNORE INTO ex_config VALUES (1, 'Verify', '0', '是否开启验证码 1开启 2关闭');`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_error  (
+			Id bigint(11) NOT NULL AUTO_INCREMENT,
+			FunName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+			ErrCode int(255) NOT NULL,
+			ErrMsg varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+			PRIMARY KEY (Id) USING BTREE
+			) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_seller  (
+				SellerId int(11) NOT NULL AUTO_INCREMENT COMMENT '运营商',
+				SellerName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '运营名称',
+				State int(255) NULL DEFAULT 1 COMMENT '状态 1启用 2禁用',
+				Remark varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+			  	ApiAccessKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '作为api的时候的通讯秘钥',
+  				ApiRiskKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '作为api的时候的通讯秘钥',
+  				ApiRiskUrl varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '作为api的时候的风控回调地址',
+				CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+				PRIMARY KEY (SellerId) USING BTREE
+			  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_transfer_in  (
+			Id bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+			OrderId bigint(20) NULL DEFAULT NULL COMMENT '订单id',
+			UserId int(11) NULL DEFAULT NULL COMMENT '玩家id',
+			SellerId int(11) NULL DEFAULT NULL COMMENT '玩家所属运营商',
+			AssetType int(255) NULL DEFAULT NULL COMMENT '资产类型',
+			Symbol varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '币种',
+			Side int(255) NULL DEFAULT NULL COMMENT '转入,转出 1转入 2转出',
+			Amount bigint(255) NULL DEFAULT NULL COMMENT '划转金额',
+			State int(255) NULL DEFAULT NULL COMMENT '订单状态',
+			Memo varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备忘录',
+			Extra varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单额外信息',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '订单创建时间',
+			PRIMARY KEY (Id) USING BTREE,
+			UNIQUE INDEX OrderId(OrderId) USING BTREE,
+			INDEX UserId(UserId) USING BTREE
+		  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '其他系统转入转出到本系统的订单' ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_transfer_out  (
+			Id bigint(20) NOT NULL AUTO_INCREMENT COMMENT '订单状态 1新建',
+			OrderId bigint(255) NULL DEFAULT NULL COMMENT '订单编号',
+			UserId int(11) NULL DEFAULT NULL COMMENT '玩家id',
+			SellerId int(11) NULL DEFAULT NULL COMMENT '玩家所属运营商',
+			AssetType int(255) NULL DEFAULT NULL COMMENT '资产类型',
+			Symbol varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '币种',
+			Side int(255) NULL DEFAULT NULL COMMENT '1转入 2转出',
+			Amount bigint(255) NULL DEFAULT NULL COMMENT '划转金额',
+			State int(255) NULL DEFAULT NULL COMMENT '订单状态 1新建 2完成 3失败',
+			Memo varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备忘录',
+			Extra varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单额外信息',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '订单创建时间',
+			PRIMARY KEY (Id) USING BTREE,
+			INDEX UserId(UserId) USING BTREE,
+			INDEX OrderId(OrderId) USING BTREE
+		  ) ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '本系统转入转出到其他系统的订单' ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_user  (
+			Id int(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
+			UserId int(11) NOT NULL COMMENT '玩家',
+			SellerId int(11) NULL DEFAULT NULL COMMENT '运营商',
+			Account varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '账号',
+			Password varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录密码',
+			ThirdId varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '第三方id',
+			Email varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '绑定邮箱',
+			NickName varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '昵称',
+			PhoneNum varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '绑定手机',
+			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录token',
+			RegisterIp varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '注册ip',
+			RegisterTime datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '注册时间',
+			PRIMARY KEY (UserId) USING BTREE,
+			UNIQUE INDEX Account(Account,SellerId) USING BTREE,
+			INDEX ThirdId(ThirdId) USING BTREE,
+			INDEX Id(Id) USING BTREE
+		  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_verify  (
+			Account varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '账号',
+			SellerId int(11) NOT NULL COMMENT '运营商',
+			UseType int(255) NOT NULL COMMENT '使用途径 1注册 2登录',
+			VerifyCode varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '验证码',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0),
+			PRIMARY KEY (Account, SellerId,UseType) USING BTREE
+		  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS z_admin_login_log  (
+			Id int(11) NOT NULL AUTO_INCREMENT,
+			UserId int(11) NULL DEFAULT NULL COMMENT '管理员id',
+			SellerId int(11) NULL DEFAULT NULL COMMENT '运营商',
+			Account varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '管理员账号',
+			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '当次登录token',
+			LoginIp varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录ip',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '登录时间',
+			PRIMARY KEY (Id) USING BTREE,
+			INDEX Account(Account) USING BTREE,
+			INDEX SellerId(SellerId) USING BTREE
+		) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS z_admin_opt_log  (
+			Id int(11) NOT NULL AUTO_INCREMENT,
+			Account varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '操作账号',
+			SellerId int(11) NOT NULL DEFAULT -1 COMMENT '账号所属运营商',
+			Opt varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '操作类型',
+			Ip varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '操作ip',
+			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '请求token',
+			Data text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '请求数据',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+			PRIMARY KEY (Id) USING BTREE,
+			INDEX Account(Account) USING BTREE,
+			INDEX Opt(Opt) USING BTREE
+		) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS z_admin_role  (
+			Id int(11) NOT NULL AUTO_INCREMENT,
+			RoleName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+			SellerId int(11) NOT NULL,
+			ParentSellerId int(11) NOT NULL COMMENT '上级角色运营商',
+			Parent varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '上级角色',
+			RoleData text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色数据',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+			PRIMARY KEY (RoleName, SellerId) USING BTREE,
+			UNIQUE INDEX id(Id) USING BTREE
+		) ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
 	sql = "INSERT IGNORE INTO `z_admin_role` VALUES (1, '超级管理员', -1, -1, 'god', '{}', now());"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE TABLE IF NOT EXISTS `z_admin_user`  ("
-	sql += "`Id` int(11) NOT NULL AUTO_INCREMENT,"
-	sql += "`Account` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '账号',"
-	sql += "`Password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '密码',"
-	sql += "`SellerId` int(11) NOT NULL COMMENT '运营商',"
-	sql += "`RoleSellerId` int(255) NOT NULL DEFAULT -1 COMMENT '角色所属运营商,只能是-1或与SellerId一致',"
-	sql += "`RoleName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色名',"
-	sql += "`State` int(255) NULL DEFAULT 1 COMMENT '状态 1启用 2禁用',"
-	sql += "`Token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'token',"
-	sql += "`GoogleSecret` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '谷歌验证码',"
-	sql += "`Remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',"
-	sql += "`LoginCount` int(255) NULL DEFAULT 0 COMMENT '登录次数',"
-	sql += "`LoginTime` datetime(0) NULL DEFAULT NULL COMMENT '最后登录时间',"
-	sql += "`LoginIp` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '最后登录Ip',"
-	sql += "`CreateTime` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),"
-	sql += "PRIMARY KEY (`Account`) USING BTREE,"
-	sql += "UNIQUE INDEX `Id`(`Id`) USING BTREE"
-	sql += ") ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;"
-	Db().QueryNoResult(sql)
-
-	sql = "INSERT IGNORE INTO `z_admin_user` VALUES (1, 'admin', '21232f297a57a5a743894a0e4a801fc3', -1, -1, '超级管理员', 1, '', '', '超级管理员,不可删除,编辑', 322, now(), '', now());"
-	Db().QueryNoResult(sql)
-
-	sql = "CREATE PROCEDURE `ex_api_user_login_password`(p_Account VARCHAR(64),p_SellerId INT,p_Password VARCHAR(64),p_ExtraData VARCHAR(10240))\r\n"
-	sql += "proc:BEGIN\r\n"
-	sql += "	##############################################################################################\r\n"
-	sql += "	DECLARE EXIT HANDLER FOR SQLEXCEPTION\r\n"
-	sql += "	BEGIN\r\n"
-	sql += "		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;\r\n"
-	sql += "		ROLLBACK;\r\n"
-	sql += "		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_user_login_password',@errcode,@errmsg);\r\n"
-	sql += "		SELECT @errcode AS errcode,@errmsg AS errmsg;\r\n"
-	sql += "	END;\r\n"
-	sql += "	##############################################################################################\r\n"
-	sql += "	SET @`Password` = NULL;\r\n"
-	sql += "	SELECT `Password` INTO @`Password` FROM ex_user WHERE Account = p_Account AND SellerId = p_SellerId;\r\n"
-	sql += "	IF ROW_COUNT() = 0 THEN\r\n"
-	sql += "		SELECT 100 AS errcode,'账号不存在' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF @`Password` <> p_Password THEN\r\n"
-	sql += "		SELECT 200 AS errcode,'密码不正确' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "END;"
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS z_admin_user  (
+			Id int(11) NOT NULL AUTO_INCREMENT,
+			Account varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '账号',
+			Password varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '密码',
+			SellerId int(11) NOT NULL COMMENT '运营商',
+			RoleSellerId int(255) NOT NULL DEFAULT -1 COMMENT '角色所属运营商,只能是-1或与SellerId一致',
+			RoleName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色名',
+			State int(255) NULL DEFAULT 1 COMMENT '状态 1启用 2禁用',
+			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'token',
+			GoogleSecret varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '谷歌验证码',
+			Remark varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+			LoginCount int(255) NULL DEFAULT 0 COMMENT '登录次数',
+			LoginTime datetime(0) NULL DEFAULT NULL COMMENT '最后登录时间',
+			LoginIp varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '最后登录Ip',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+			PRIMARY KEY (Account) USING BTREE,
+			UNIQUE INDEX Id(Id) USING BTREE
+		) ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `INSERT IGNORE INTO z_admin_user VALUES (1, 'admin', '21232f297a57a5a743894a0e4a801fc3', -1, -1, '超级管理员', 1, '', '', '超级管理员,不可删除,编辑', 0, now(), '', now());`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE PROCEDURE ex_db_verify(p_Account VARCHAR(64),p_SellerId INT,p_UseType INT,p_VerifyCode VARCHAR(64),OUT p_Result INT)
+proc:BEGIN
+/*
+	验证码验证
+	返回值:
+		0:成功
+		1:验证码不存在
+		2:验证码已过期
+		3:验证码不正确
+*/
+	SET p_Result = 0;
+	SET @Verify = NULL;
+	SELECT ConfigValue INTO @Verify FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'Verify';
+	IF @Verify <> '1' THEN
+		LEAVE proc;
+	END IF;
+	SET @VerifyCode = NULL;
+	SET @CreateTime = NULL;
+	SELECT VerifyCode,CreateTime INTO @VerifyCode,@CreateTime FROM ex_verify WHERE Account = p_Account AND SellerId = p_SellerId AND UseType = p_UseType;
+	IF ROW_COUNT() = 0 THEN
+		SET p_Result = 1;
+		LEAVE proc;
+	END IF;
+	IF DATE_ADD(@CreateTime, interval 10 MINUTE) < NOW() THEN
+		SET p_Result = 2;
+		LEAVE proc;
+	END IF;
+	IF @VerifyCode <> p_VerifyCode THEN
+		SET p_Result = 3;
+		LEAVE proc;
+	END IF;
+	DELETE FROM ex_verify  WHERE Account = p_Account AND UseType = p_UseType;
+END`
+	sql = replace_sql(sql)
 	_, err := Db().Conn().Exec(sql)
 	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
 		fmt.Println(err)
 	}
-
-	sql = "CREATE PROCEDURE `ex_api_user_login_verifycode`(p_Account VARCHAR(64),p_SellerId INT,p_Password VARCHAR(64),p_VerifyCode VARCHAR(10),p_ExtraData VARCHAR(10240))\r\n"
-	sql += "proc:BEGIN\r\n"
-	sql += "	##############################################################################################\r\n"
-	sql += "	DECLARE EXIT HANDLER FOR SQLEXCEPTION\r\n"
-	sql += "	BEGIN\r\n"
-	sql += "		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;\r\n"
-	sql += "		ROLLBACK;\r\n"
-	sql += "		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_user_login_password',@errcode,@errmsg);\r\n"
-	sql += "		SELECT @errcode AS errcode,@errmsg AS errmsg;\r\n"
-	sql += "	END;\r\n"
-	sql += "	##############################################################################################\r\n"
-	sql += "	SET @`Password` = NULL;\r\n"
-	sql += "	SET @OldToken = NULL;\r\n"
-	sql += "	SET @UserId = NULL;\r\n"
-	sql += "	SELECT UserId,`Password`,Token INTO @UserId,@`Password`,@OldToken FROM ex_user WHERE Account = p_Account AND SellerId = p_SellerId;\r\n"
-	sql += "	IF ROW_COUNT() = 0 THEN\r\n"
-	sql += "		SELECT 100 AS errcode,'账号不存在' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF @`Password` <> p_Password THEN\r\n"
-	sql += "		SELECT 200 AS errcode,'密码不正确' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	SET @VerifyResult = ex_fn_verify(p_Account,p_SellerId,2,p_VerifyCode);\r\n"
-	sql += "	IF @VerifyResult = 1 THEN\r\n"
-	sql += "		SELECT 210 AS errcode, '验证码不存在' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	ELSEIF @VerifyResult = 2 THEN\r\n"
-	sql += "		SELECT 211 AS errcode, '验证码已过期' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	ELSEIF @VerifyResult = 3 THEN\r\n"
-	sql += "		SELECT 212 AS errcode, '验证码不正确' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	SET @NewToken = UUID();\r\n"
-	sql += "	UPDATE ex_user SET Token = @NewToken WHERE UserId = @UserId;\r\n"
-	sql += "	SELECT @UserId AS UserId,p_SellerId AS SellerId,@OldToken AS OldToken,@NewToken AS NewToken;\r\n"
-	sql += "END;\r\n"
-	_, err = Db().Conn().Exec(sql)
-	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
-		fmt.Println(err)
-	}
-	sql = "CREATE PROCEDURE `ex_api_user_register`(p_Account VARCHAR(64),p_SellerId INT,p_Password VARCHAR(64),p_VerifyCode VARCHAR(10),p_ExtraData VARCHAR(10240))\r\n"
-	sql += "proc:BEGIN\r\n"
-	sql += "	##############################################################################################\r\n"
-	sql += "	DECLARE EXIT HANDLER FOR SQLEXCEPTION\r\n"
-	sql += "	BEGIN\r\n"
-	sql += "		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;\r\n"
-	sql += "		ROLLBACK;\r\n"
-	sql += "		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_user_register',@errcode,@errmsg);\r\n"
-	sql += "		SELECT @errcode AS errcode,@errmsg AS errmsg;\r\n"
-	sql += "	END;\r\n"
-	sql += "	##############################################################################################\r\n"
-	sql += "	SET @SystemOpen = NULL;\r\n"
-	sql += "	SELECT ConfigValue INTO @SystemOpen FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'SystemOpen';\r\n"
-	sql += "	IF @SystemOpen <> '1' THEN\r\n"
-	sql += "		SELECT 50 AS errcode,'系统维护,请稍后再试' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	SET @SellerState = NULL;\r\n"
-	sql += "	SELECT State INTO @SellerState FROM ex_seller WHERE SellerId = p_SellerId;\r\n"
-	sql += "	IF ROW_COUNT() = 0 THEN\r\n"
-	sql += "		SELECT 100 AS errcode,'运营商不存在' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF @SellerState <> 1 THEN\r\n"
-	sql += "		SELECT 101 AS errcode,'运营商已被禁用' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	SET @Email = NULL;\r\n"
-	sql += "	SET @PhoneNum = NULL;\r\n"
-	sql += "	IF LOCATE('@',p_Account) > 0 THEN\r\n"
-	sql += "		SET @Email = p_Account;\r\n"
-	sql += "	ELSE\r\n"
-	sql += "		SET @PhoneNum = p_Account;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF EXISTS(SELECT UserId FROM ex_user WHERE Account = p_Account) THEN\r\n"
-	sql += "		SELECT 200 AS errcode,'账号已经存在' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "\r\n"
-	sql += "	SET @VerifyResult = ex_fn_verify(p_Account,p_SellerId,1,p_VerifyCode);\r\n"
-	sql += "	IF @VerifyResult = 1 THEN\r\n"
-	sql += "		SELECT 210 AS errcode, '验证码不存在' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	ELSEIF @VerifyResult = 2 THEN\r\n"
-	sql += "		SELECT 211 AS errcode, '验证码已过期' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	ELSEIF @VerifyResult = 3 THEN\r\n"
-	sql += "		SELECT 212 AS errcode, '验证码不正确' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "\r\n"
-	sql += "	SET @UserId = ex_fn_create_userid();\r\n"
-	sql += "	IF @UserId = 0 THEN\r\n"
-	sql += "		SELECT 300 AS errcode,'分配玩家Id失败' AS errmsg;\r\n"
-	sql += "		LEAVE proc;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF p_ExtraData = NULL OR LENGTH(p_ExtraData) = 0 THEN\r\n"
-	sql += "		SET p_ExtraData = '{}';\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	SET @Ip = JSON_UNQUOTE(JSON_EXTRACT(p_ExtraData,'$.ip'));\r\n"
-	sql += "	INSERT INTO ex_user(UserId,SellerId,Account,`Password`,Email,PhoneNum,NickName,RegisterIp)\r\n"
-	sql += "	VALUES(@UserId,p_SellerId,p_Account,p_Password,@Email,@PhoneNum,CONCAT(@UserId),@Ip);\r\n"
-	sql += "	SELECT @UserId AS UserId;\r\n"
-	sql += "END;\r\n"
+	sql = `CREATE  PROCEDURE ex_db_get_userid(OUT p_UserId INT)
+BEGIN
+	SET p_UserId = 0;
+	#创建玩家Id
+	SET @whilecount = 0;
+	SET @UserId = NULL;
+	WHILE @whilecount < 10 AND @UserId IS NULL DO
+		SET @whilecount = @whilecount + 1;
+		SET @tmpid = 0;
+		SELECT FLOOR(10000000 + RAND() * (99999999 - 10000000)) INTO @tmpid;
+		IF NOT EXISTS(SELECT UserId FROM ex_user WHERE UserId = @tmpid) THEN
+			SET @UserId = @tmpid;
+		END IF;
+	END WHILE;
+	IF @UserId IS NULL THEN
+		SET @UserId = 0;
+	END IF;
+	SET p_UserId = @UserId;
+END`
+	sql = replace_sql(sql)
 	_, err = Db().Conn().Exec(sql)
 	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
 		fmt.Println(err)
 	}
 
-	sql = "CREATE FUNCTION `ex_fn_create_userid`()\r\n"
-	sql += "RETURNS int(11)\r\n"
-	sql += "BEGIN\r\n"
-	sql += "	#创建玩家Id\r\n"
-	sql += "	SET @whilecount = 0;\r\n"
-	sql += "	SET @UserId = NULL;\r\n"
-	sql += "	WHILE @whilecount < 10 AND @UserId IS NULL DO\r\n"
-	sql += "		SET @whilecount = @whilecount + 1;\r\n"
-	sql += "		SET @tmpid = 0;\r\n"
-	sql += "		SELECT FLOOR( 10000000 + RAND() * (99999999 - 10000000)) INTO @tmpid;\r\n"
-	sql += "		IF NOT EXISTS(SELECT UserId FROM ex_user WHERE UserId = @tmpid) THEN\r\n"
-	sql += "			SET @UserId = @tmpid;\r\n"
-	sql += "		END IF;\r\n"
-	sql += "		END WHILE;\r\n"
-	sql += "		IF @UserId IS NULL THEN\r\n"
-	sql += "		SET @UserId = 0;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	RETURN @UserId;\r\n"
-	sql += "END;\r\n"
+	sql = `CREATE PROCEDURE ex_db_asset_alter(p_UserId INT,p_SellerId INT,p_AssetType INT,p_Symbol VARCHAR(32),p_Amount BIGINT,p_Reason INT,p_Memo VARCHAR(1024),OUT p_ResultAmount BIGINT)
+proc:BEGIN
+	IF p_Amount = 0 THEN
+		LEAVE proc;
+	END IF;
+	SET @AssetAmt = NULL;
+	SELECT AssetAmt INTO @AssetAmt WHERE UserId = p_UserId AND AssetType = p_AssetType AND Symbol = p_Symbol FOR UPDATE;
+	IF FOUND_ROWS() = 0 THEN
+		SET @AssetAmt = 0;
+		INSERT INTO ex_asset(UserId,SellerId,AssetType,Symbol,AssetAmt,FrozenAmt)
+		VALUES(p_UserId,p_SellerId,p_AssetType,p_Symbol,0,0);
+	END IF;
+	UPDATE ex_asset SET AssetAmt = AssetAmt + p_Amount WHERE UserId = p_UserId AND AssetType = p_AssetType AND Symbol = p_Symbol;
+	INSERT INTO ex_asset_log(UserId,BeforeAmount,ChangeAmount,AfterAmount,Reason,Extra)VALUES(p_UserId,@AssetAmt,p_Amount,@AssetAmt + p_Amount,p_Reason,p_Memo);
+	SET p_ResultAmount = @AssetAmt + p_Amount;
+END`
+	sql = replace_sql(sql)
 	_, err = Db().Conn().Exec(sql)
 	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
 		fmt.Println(err)
 	}
-
-	sql = "CREATE FUNCTION `ex_fn_verify`(p_Account VARCHAR(64),p_SellerId INT,p_UseType INT,p_VerifyCode VARCHAR(64))\r\n"
-	sql += "RETURNS int(11)\r\n"
-	sql += "BEGIN\r\n"
-	sql += "	/*\r\n"
-	sql += "	验证码验证\r\n"
-	sql += "	返回值:\r\n"
-	sql += "   		0:成功\r\n"
-	sql += "   		1:验证码不存在\r\n"
-	sql += "   		2:验证码已过期\r\n"
-	sql += "   		3:验证码不正确\r\n"
-	sql += "	*/\r\n"
-	sql += "	SET @Verify = NULL;\r\n"
-	sql += "	SELECT ConfigValue INTO @Verify FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'Verify';\r\n"
-	sql += "	IF @Verify <> '1' THEN\r\n"
-	sql += "		RETURN 0;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	SET @VerifyCode = NULL;\r\n"
-	sql += "	SET @CreateTime = NULL;\r\n"
-	sql += "	SELECT VerifyCode,CreateTime INTO @VerifyCode,@CreateTime FROM ex_verify WHERE Account = p_Account AND SellerId = p_SellerId AND UseType = p_UseType;\r\n"
-	sql += "	IF ROW_COUNT() = 0 THEN\r\n"
-	sql += "		RETURN 1;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF DATE_ADD(@CreateTime, interval 10 MINUTE) < NOW() THEN\r\n"
-	sql += "		DELETE FROM ex_verify  WHERE Account = p_Account AND UseType = p_UseType;\r\n"
-	sql += "		RETURN 2;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	IF @VerifyCode <> p_VerifyCode THEN\r\n"
-	sql += "		RETURN 3;\r\n"
-	sql += "	END IF;\r\n"
-	sql += "	DELETE FROM ex_verify  WHERE Account = p_Account AND UseType = p_UseType;\r\n"
-	sql += "	RETURN 0;\r\n"
-	sql += "END;\r\n"
+	sql = `CREATE PROCEDURE ex_api_user_register(p_Account VARCHAR(64),p_SellerId INT,p_Password VARCHAR(64),p_VerifyCode VARCHAR(10),p_ExtraData VARCHAR(10240))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_user_register',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	SET @SystemOpen = NULL;
+	SELECT ConfigValue INTO @SystemOpen FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'SystemOpen';
+	IF @SystemOpen <> '1' THEN
+		SELECT @ErrCode AS errcode,'系统维护,请稍后再试' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @SellerState = NULL;
+	SELECT State INTO @SellerState FROM ex_seller WHERE SellerId = p_SellerId;
+	IF ROW_COUNT() = 0 THEN
+		SELECT @ErrCode AS errcode,'运营商不存在' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF @SellerState <> 1 THEN
+		SELECT @ErrCode AS errcode,'运营商已被禁用' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @Email = NULL;
+	SET @PhoneNum = NULL;
+	IF LOCATE('@',p_Account) > 0 THEN
+		SET @Email = p_Account;
+	ELSE
+		SET @PhoneNum = p_Account;
+	END IF;
+	IF EXISTS(SELECT UserId FROM ex_user WHERE Account = p_Account) THEN
+		SELECT @ErrCode AS errcode,'账号已经存在' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @VerifyResult = 0;
+	CALL ex_db_verify(p_Account,p_SellerId,1,p_VerifyCode,@VerifyResult);
+	IF @VerifyResult = 1 THEN
+		SELECT @ErrCode + 1 AS errcode, '验证码不存在' AS errmsg;
+		LEAVE proc;
+	ELSEIF @VerifyResult = 2 THEN
+		SELECT @ErrCode + 2 AS errcode, '验证码已过期' AS errmsg;
+		LEAVE proc;
+	ELSEIF @VerifyResult = 3 THEN
+		SELECT @ErrCode + 3 AS errcode, '验证码不正确' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @UserId = 0;
+	CALL ex_db_get_userid(@UserId);
+	IF @UserId = 0 THEN
+		SELECT @ErrCode AS errcode,'分配玩家Id失败' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF p_ExtraData = NULL OR LENGTH(p_ExtraData) = 0 THEN
+		SET p_ExtraData = '{}';
+	END IF;
+	SET @Ip = JSON_UNQUOTE(JSON_EXTRACT(p_ExtraData,'$.ip'));
+	INSERT INTO ex_user(UserId,SellerId,Account,2416796325297210Password2416796325297210,Email,PhoneNum,NickName,RegisterIp)
+	VALUES(@UserId,p_SellerId,p_Account,p_Password,@Email,@PhoneNum,CONCAT(@UserId),@Ip);
+	SELECT @UserId AS UserId;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_user_login_verifycode(p_Account VARCHAR(64),p_SellerId INT,p_Password VARCHAR(64),p_VerifyCode VARCHAR(10),p_ExtraData VARCHAR(10240))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_user_login_verifycode',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	SET @2416796325297210Password2416796325297210 = NULL;
+	SET @OldToken = NULL;
+	SET @UserId = NULL;
+	SELECT UserId,2416796325297210Password2416796325297210,Token INTO @UserId,@2416796325297210Password2416796325297210,@OldToken FROM ex_user WHERE Account = p_Account AND SellerId = p_SellerId;
+	IF ROW_COUNT() = 0 THEN
+		SELECT @ErrCode AS errcode,'账号不存在' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF @2416796325297210Password2416796325297210 <> p_Password THEN
+		SELECT @ErrCode AS errcode,'密码不正确' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @VerifyResult = 0;
+	CALL ex_db_verify(p_Account,p_SellerId,2,p_VerifyCode,@VerifyResult);
+	IF @VerifyResult = 1 THEN
+		SELECT @ErrCode + 1 AS errcode, '验证码不存在' AS errmsg;
+		LEAVE proc;
+	ELSEIF @VerifyResult = 2 THEN
+		SELECT @ErrCode + 2 AS errcode, '验证码已过期' AS errmsg;
+		LEAVE proc;
+	ELSEIF @VerifyResult + 3 = 3 THEN
+		SELECT @ErrCode AS errcode, '验证码不正确' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @NewToken = UUID();
+	UPDATE ex_user SET Token = @NewToken WHERE UserId = @UserId;
+	SELECT @UserId AS UserId,p_SellerId AS SellerId,@OldToken AS OldToken,@NewToken AS NewToken;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_user_login_password(p_Account VARCHAR(64),p_SellerId INT,p_Password VARCHAR(64),p_ExtraData VARCHAR(10240))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_user_login_password',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	SET @2416796325297210Password2416796325297210 = NULL;
+	SELECT 2416796325297210Password2416796325297210 INTO @2416796325297210Password2416796325297210 FROM ex_user WHERE Account = p_Account AND SellerId = p_SellerId;
+	IF ROW_COUNT() = 0 THEN
+		SELECT @ErrCode AS errcode,'账号不存在' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF @2416796325297210Password2416796325297210 <> p_Password THEN
+		SELECT @ErrCode AS errcode,'密码不正确' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_transfer_out_update(p_OrderId BIGINT,p_State INT,p_Extra VARCHAR(1024),p_Reason INT ,p_Memo VARCHAR(1024))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_transfer_out_update',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	IF p_State <> 2 OR p_State <> 3 THEN #p_State = 2 成功 p_State = 3 失败
+		LEAVE proc;
+	END IF;
+	START TRANSACTION;
+		SET @UserId = NULL;
+		SET @AssetType = NULL;
+		SET @Symbol = NULL;
+		SET @Side = NULL;
+		SET @State = NULL;
+		SET @Amount = NULL;
+		SELECT UserId,AssetType,Symbol,Side,State,Amount INTO @UserId,@AssetType,@Symbol,@Side,@State,@Amount FROM ex_transfer_out WHERE id = p_OrderId FOR UPDATE;
+		IF ROW_COUNT() = 0 THEN
+			ROLLBACK;
+			SELECT @ErrCode AS errcode,'订单不存在' AS errmsg;
+			LEAVE proc;
+		END IF;
+		SET @ErrCode = @ErrCode + 1;
+		IF @State <> 1 THEN
+			ROLLBACK;
+			SELECT @ErrCode AS errcode,'订单状态不正确' AS errmsg;
+			LEAVE proc;
+		END IF;
+		SET @Memo = '';
+		SET @ErrCode = @ErrCode + 1;
+		IF p_State = 3 AND @Side = 2 THEN #转出失败,退钱
+			CALL ex_db_asset_alter(p_UserId,p_SellerId,@AssetType,@Symbol,@Amount,p_Reason,p_Memo,@AfterAssetAmt);
+			UPDATE ex_asset SET FrozenAmt = FrozenAmt - p_Amount WHERE UserId = p_UserId AND AssetAmt = p_AssetType AND Symbol = p_Symbol;
+			SET @Memo = '订单失败';
+		END IF;
+		IF p_State = 2 AND @Side = 1 THEN #转入成功,加钱
+			CALL ex_db_asset_alter(p_UserId,p_SellerId,@AssetType,@Symbol,@Amount,p_Reason,p_Memo,@AfterAssetAmt);
+			SET @Memo = '订单成功';
+		END IF;
+		UPDATE ex_transfer_out SET State = p_State WHERE Id = p_OrderId;
+	COMMIT;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_transfer_out_out(p_UserId INT,p_SellerId INT,p_AssetType INT,p_Symbol VARCHAR(32),p_Amount BIGINT,p_Extra VARCHAR(1024),p_Reason INT,p_Memo VARCHAR(1024))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_transfer_out_out',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	IF p_Amount <= 0 THEN
+		SELECT @ErrCode AS errcode,"参数错误" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_asset_change_reason WHERE Id = p_Reason) THEN
+		SELECT @ErrCode AS errcode,"变化原因不存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @OrderId = NULL;
+	SET @whilecount = 0;
+	WHILE @whilecount < 10 AND @OrderId IS NULL DO
+		SET @whilecount = @whilecount + 1;
+		SET @tmpid = FLOOR(100000000000000 + RAND() * (999999999999999 - 100000000000000));
+		IF NOT EXISTS(SELECT id FROM ex_transfer_out WHERE OrderId = @tmpid) THEN
+			SET @OrderId = @tmpid;
+			SET @whilecount = 100;
+		END IF;
+	END WHILE;
+	IF @OrderId IS NULL THEN
+		SELECT @ErrCode AS errcode,"分配OrderId失败" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	START TRANSACTION;
+		SET @AfterAssetAmt  = 0;
+		CALL ex_db_asset_alter(OrderId,p_UserId,p_SellerId,p_AssetType,p_Symbol,-p_Amount,p_Reason,p_Memo,@AfterAssetAmt);
+		IF @AfterAssetAmt < 0 THEN
+			ROLLBACK;
+			SELECT @ErrCode AS errcode,"资产不足" AS errmsg;
+			LEAVE proc;
+		END IF;
+		SET @ErrCode = @ErrCode + 1;
+		UPDATE ex_asset SET FrozenAmt = FrozenAmt + p_Amount WHERE UserId = p_UserId AND AssetType = p_AssetType AND Symbol = p_Symbol;
+		INSERT INTO ex_api_transfer_out_out(UserId,SellerId,Symbol,Side,AssetType,Amount,State,Extra,Memo)
+		VALUES(@OrderId,p_UserId,p_SellerId,p_Symbol,2,p_AssetType,p_Amount,1,p_Extra,"新建订单");
+		SELECT @OrderId AS OrderId;
+	COMMIT;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_transfer_out_in(p_UserId INT,p_SellerId INT,p_AssetType INT,p_Symbol VARCHAR(32),p_Amount BIGINT,p_Extra VARCHAR(1024),p_Reason INT,p_Memo VARCHAR(1024))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_transfer_out_in',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	IF p_Amount <= 0 THEN
+		SELECT @ErrCode AS errcode,"参数错误" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_asset_change_reason WHERE Id = p_Reason) THEN
+		SELECT @ErrCode AS errcode,"变化原因不存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_user WHERE UserId = p_UserId) THEN
+		SELECT @ErrCode AS errcode,"玩家不存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	START TRANSACTION;
+		SET @OrderId = NULL;
+		SET @whilecount = 0;
+		WHILE @whilecount < 10 AND @OrderId IS NULL DO
+			SET @whilecount = @whilecount + 1;
+			SET @tmpid = FLOOR(100000000000000 + RAND() * (999999999999999 - 100000000000000));
+			IF NOT EXISTS(SELECT id FROM ex_transfer_out WHERE OrderId = @tmpid) THEN
+				SET @OrderId = @tmpid;
+				SET @whilecount = 100;
+			END IF;
+		END WHILE;
+		IF @OrderId IS NULL THEN
+			SELECT @ErrCode AS errcode,"分配OrderId失败" AS errmsg;
+			LEAVE proc;
+		END IF;
+		SET @ErrCode = @ErrCode + 1;
+		INSERT INTO ex_api_transfer_out_out(OrderId,UserId,SellerId,Symbol,Side,AssetType,Amount,State,Extra,Memo)
+		VALUES(@OrderId,p_UserId,p_SellerId,p_Symbol,1,p_AssetType,p_Amount,1,p_Extra,"新建订单");
+		SELECT @OrderId AS OrderId;
+	COMMIT;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_transfer_in_out(p_OrderId BIGINT,p_UserId INT,p_SellerId INT,p_AssetType INT,p_Symbol VARCHAR(32),p_Amount BIGINT,p_Extra VARCHAR(1024),p_Reason INT,p_Memo VARCHAR(1024))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_transfer_in_out',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	INSERT INTO ex_transfer_in(OrderId,UserId,SellerId,AssetType,Symbol,Amount,Side,State,Extra,Memo)
+	VALUES(p_OrderId,p_UserId,p_SellerId,p_AssetType,p_Symbol,p_Amount,2,1,p_Extra,p_Memo);
+	IF p_Amount <= 0 THEN
+		SELECT @ErrCode AS errcode,"参数错误" AS errmsg;
+		UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,参数错误' WHERE OrderId = p_OrderId;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_asset_change_reason WHERE Id = p_Reason) THEN
+		SELECT @ErrCode AS errcode,"变化原因不存在" AS errmsg;
+		UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,变化原因不存在' WHERE OrderId = p_OrderId;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_user WHERE UserId = p_UserId) THEN
+		SELECT @ErrCode AS errcode,"玩家不存在" AS errmsg;
+		UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,玩家不存在' WHERE OrderId = p_OrderId;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	START TRANSACTION;
+		SET @AfterAssetAmt = 0;
+		CALL ex_db_asset_alter(p_UserId,p_SellerId,p_AssetType,p_Symbol,-p_Amount,p_Reason,p_Memo,@AfterAssetAmt);
+		IF @AfterAssetAmt < 0 THEN
+			ROLLBACK;
+			SELECT @ErrCode AS errcode,"资产不足" AS errmsg;
+			UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,资产不足' WHERE OrderId = p_OrderId;
+			LEAVE proc;
+		END IF;
+		UPDATE ex_transfer_in SET State = 2,Memo = '订单成功' WHERE OrderId = p_OrderId;
+	COMMIT;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_transfer_in_in(p_OrderId BIGINT,p_UserId INT,p_SellerId INT,p_AssetType INT,p_Symbol VARCHAR(32),p_Amount BIGINT,p_Extra VARCHAR(1024),p_Reason INT,p_Memo VARCHAR(1024))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_transfer_in_in',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	INSERT INTO ex_transfer_in(OrderId,UserId,SellerId,AssetType,Symbol,Amount,Side,State,Extra,Memo)
+	VALUES(p_OrderId,p_UserId,p_SellerId,p_AssetType,p_Symbol,p_Amount,1,1,p_Extra,p_Memo);
+	IF p_Amount <= 0 THEN
+		SELECT @ErrCode AS errcode,"参数错误" AS errmsg;
+		UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,参数错误' WHERE OrderId = p_OrderId;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_asset_change_reason WHERE Id = p_Reason) THEN
+		SELECT @ErrCode AS errcode,"变化原因不存在" AS errmsg;
+		UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,变化原因不存在' WHERE OrderId = p_OrderId;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF NOT EXISTS(SELECT Id FROM ex_user WHERE UserId = p_UserId) THEN
+		SELECT @ErrCode AS errcode,"玩家不存在" AS errmsg;
+		UPDATE ex_transfer_in SET State = 3,Memo = '订单失败,玩家不存在' WHERE OrderId = p_OrderId;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	START TRANSACTION;
+		CALL ex_db_asset_alter(p_UserId,p_SellerId,p_AssetType,p_Symbol,p_Amount,p_Reason,p_Memo,@AfterAssetAmt);
+		UPDATE ex_transfer_in SET State = 2,Memo = '订单成功' WHERE OrderId = p_OrderId;
+	COMMIT;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_third_register(p_ThirdId VARCHAR(32),p_SellerId INT,p_Password VARCHAR(64),p_ExtraData VARCHAR(10240))
+proc:BEGIN
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_third_register',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 1;
+	SET @SystemOpen = NULL;
+	SELECT ConfigValue INTO @SystemOpen FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'SystemOpen';
+	IF @SystemOpen <> '1' THEN
+		SELECT @ErrCode AS errcode,'系统维护,请稍后再试' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @SellerState = NULL;
+	SELECT State INTO @SellerState FROM ex_seller WHERE SellerId = p_SellerId;
+	IF ROW_COUNT() = 0 THEN
+		SELECT @ErrCode AS errcode,'运营商不存在' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF @SellerState <> 1 THEN
+		SELECT @ErrCode AS errcode,'运营商已被禁用' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @UserId = 0;
+	SELECT UserId INTO @UserId FROM ex_user WHERE ThirdId = p_ThirdId AND SellerId = p_SellerId;
+	#账号已存在,更新账号密码
+	IF FOUND_ROWS() > 0 THEN
+		UPDATE ex_user SET 2416796325297210Password2416796325297210 = p_Password WHERE ThirdId = p_ThirdId AND SellerId = p_SellerId;
+		SELECT @UserId AS UserId;
+		LEAVE proc;
+	END IF;
+	#账号不存在,创建账号
+	CALL ex_db_get_userid(@UserId);
+	IF @UserId = 0 THEN
+		SELECT @ErrCode AS errcode,'分配玩家Id失败' AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF p_ExtraData = NULL OR LENGTH(p_ExtraData) = 0 THEN
+		SET p_ExtraData = '{}';
+	END IF;
+	INSERT INTO ex_user(UserId,SellerId,Account,ThirdId,2416796325297210Password2416796325297210,NickName)
+	VALUES(@UserId,p_SellerId,p_ThirdId,p_ThirdId,p_Password,CONCAT(@UserId));
+	SELECT @UserId AS UserId;
+END`
+	sql = replace_sql(sql)
 	_, err = Db().Conn().Exec(sql)
 	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
 		fmt.Println(err)

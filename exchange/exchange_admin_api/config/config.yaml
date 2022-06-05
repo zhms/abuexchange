@@ -28,7 +28,7 @@ server:
     #user: excuser
     #password: piMZ5BEythiT4c5xougN3i1cZrMLf2m9
     #database: abu_exchange
-    host: 127.0.0.1 #rm-3nsk1960n39bp2j21bo.mysql.rds.aliyuncs.com
+    host: 127.0.0.1
     port: 3106
     user: root
     password: root123

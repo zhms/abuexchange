@@ -17,7 +17,6 @@ var redis *abugo.AbuRedis
 var db *abugo.AbuDb
 var websocket *abugo.AbuWebsocket
 var debug bool = false
-var db_seller_tablename string = "ex_seller"
 
 type SellerData struct {
 	SellerId   int
@@ -29,6 +28,7 @@ type SellerData struct {
 
 func seller_list(ctx *abugo.AbuHttpContent) {
 	defer recover()
+	errcode := -1
 	type RequestData struct {
 		Page     int
 		PageSize int
@@ -36,9 +36,10 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
 	if err != nil {
-		ctx.RespErr(-1, err.Error())
+		ctx.RespErr(errcode, err.Error())
 		return
 	}
+	errcode--
 	if reqdata.Page == 0 {
 		reqdata.Page = 1
 	}
@@ -70,9 +71,10 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 	dbresult, err := db.Conn().Query(where.Sql(db_seller_tablename, reqdata.Page, reqdata.PageSize), where.GetParams()...)
 	if err != nil {
 		logs.Error(err)
-		ctx.RespErr(-2, err.Error())
+		ctx.RespErr(errcode, err.Error())
 		return
 	}
+	errcode--
 	data := []SellerData{}
 	for dbresult.Next() {
 		d := SellerData{}
@@ -90,6 +92,7 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 
 func seller_add(ctx *abugo.AbuHttpContent) {
 	defer recover()
+	errcode := -1
 	type RequestData struct {
 		SellerName string `validate:"required"`
 		State      int    `validate:"required"`
@@ -101,6 +104,7 @@ func seller_add(ctx *abugo.AbuHttpContent) {
 		ctx.RespErr(-1, err.Error())
 		return
 	}
+	errcode--
 	token := GetToken(ctx)
 	if token.SellerId != -1 {
 		ctx.RespErr(-300, "权限不足")
@@ -1225,7 +1229,7 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 		ctx.RespOK()
 		return
 	}
-	sql := "select * from ex_seller where State = 1"
+	sql := fmt.Sprintf("select * from %sseller where State = 1", DbPrefix)
 	dbresult, err := db.Conn().Query(sql)
 	if err != nil {
 		ctx.RespErr(1, err.Error())
