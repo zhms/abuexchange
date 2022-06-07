@@ -81,10 +81,10 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 	}
 	data := []SellerData{}
 	for dbresult.Next() {
-		d := SellerData{}
-		abugo.GetDbResult(dbresult, &d)
-		d.CreateTime = abugo.TimeToUtc(d.CreateTime)
-		data = append(data, d)
+		data_element := SellerData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data_element.CreateTime = abugo.TimeToUtc(data_element.CreateTime)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.Put("data", data)
@@ -302,12 +302,12 @@ type TokenData struct {
 }
 
 func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
-	td := TokenData{}
-	err := json.Unmarshal([]byte(ctx.TokenData), &td)
+	tokendata := TokenData{}
+	err := json.Unmarshal([]byte(ctx.TokenData), &tokendata)
 	if err != nil {
 		return nil
 	}
-	return &td
+	return &tokendata
 }
 func WriteAdminLog(opt string, ctx *abugo.AbuHttpContent, data interface{}) {
 	token := ctx.Token
@@ -532,10 +532,10 @@ func login_log(ctx *abugo.AbuHttpContent) {
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
-		d := ReturnData{}
-		abugo.GetDbResult(dbresult, &d)
-		d.CreateTime = abugo.TimeToUtc(d.CreateTime)
-		data = append(data, d)
+		data_element := ReturnData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data_element.CreateTime = abugo.TimeToUtc(data_element.CreateTime)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.Put("data", data)
@@ -597,9 +597,9 @@ func role_list(ctx *abugo.AbuHttpContent) {
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
-		d := ReturnData{}
-		abugo.GetDbResult(dbresult, &d)
-		data = append(data, d)
+		data_element := ReturnData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.Put("data", data)
@@ -924,10 +924,10 @@ func opt_log(ctx *abugo.AbuHttpContent) {
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
-		d := ReturnData{}
-		abugo.GetDbResult(dbresult, &d)
-		d.CreateTime = abugo.TimeToUtc(d.CreateTime)
-		data = append(data, d)
+		data_element := ReturnData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data_element.CreateTime = abugo.TimeToUtc(data_element.CreateTime)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.Put("data", data)
@@ -996,11 +996,11 @@ func user_list(ctx *abugo.AbuHttpContent) {
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
-		d := ReturnData{}
-		abugo.GetDbResult(dbresult, &d)
-		d.CreateTime = abugo.TimeToUtc(d.CreateTime)
-		d.LoginTime = abugo.TimeToUtc(d.LoginTime)
-		data = append(data, d)
+		data_element := ReturnData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data_element.CreateTime = abugo.TimeToUtc(data_element.CreateTime)
+		data_element.LoginTime = abugo.TimeToUtc(data_element.LoginTime)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.Put("data", data)
@@ -1177,9 +1177,9 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 	data = append(data, ReturnData{0, "全部"})
 	data = append(data, ReturnData{-1, "总后台"})
 	for dbresult.Next() {
-		d := ReturnData{}
-		abugo.GetDbResult(dbresult, &d)
-		data = append(data, d)
+		data_element := ReturnData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.RespOK(data)
@@ -1200,12 +1200,12 @@ func seller_flush(ctx *abugo.AbuHttpContent) {
 		}
 	}
 	for dbresult.Next() {
-		d := CacheSellerData{}
-		abugo.GetDbResult(dbresult, &d)
-		if d.State == 1 {
-			redis.HSet("exchange:seller", fmt.Sprint(d.SellerId), d)
+		data := CacheSellerData{}
+		abugo.GetDbResult(dbresult, &data)
+		if data.State == 1 {
+			redis.HSet("exchange:seller", fmt.Sprint(data.SellerId), data)
 		} else {
-			redis.HDel("exchange:seller", fmt.Sprint(d.SellerId))
+			redis.HDel("exchange:seller", fmt.Sprint(data.SellerId))
 		}
 	}
 	dbresult.Close()

@@ -69,9 +69,9 @@ func user_list(ctx *abugo.AbuHttpContent) {
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
-		d := ReturnData{}
-		abugo.GetDbResult(dbresult, &d)
-		data = append(data, d)
+		data_element := ReturnData{}
+		abugo.GetDbResult(dbresult, &data_element)
+		data = append(data, data_element)
 	}
 	dbresult.Close()
 	ctx.Put("data", data)
