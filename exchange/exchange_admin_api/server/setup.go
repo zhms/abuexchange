@@ -61,7 +61,7 @@ func SetupDatabase() {
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE IF NOT EXISTS ex_asset_log  (
-			Id int(11) NOT NULL COMMENT 'id',
+			Id int(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
 			UserId int(11) NOT NULL COMMENT '玩家id',
 			BeforeAmount bigint(255) NOT NULL COMMENT '变化前',
 			ChangeAmount bigint(255) NOT NULL COMMENT '变化值',
@@ -104,9 +104,12 @@ func SetupDatabase() {
 				SellerName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '运营名称',
 				State int(255) NULL DEFAULT 1 COMMENT '状态 1启用 2禁用',
 				Remark varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
-			  	ApiAccessKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '作为api的时候的通讯秘钥',
-  				ApiRiskKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '作为api的时候的通讯秘钥',
-  				ApiRiskUrl varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '作为api的时候的风控回调地址',
+			  	ApiPublicKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+				ApiPrivateKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+				ApiThirdPublicKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+				ApiRiskPublicKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+				ApiRiskPrivateKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+				ApiRiskThirdPublicKey text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
 				CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
 				PRIMARY KEY (SellerId) USING BTREE
 			  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
@@ -342,7 +345,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	SET @SystemOpen = NULL;
 	SELECT ConfigValue INTO @SystemOpen FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'SystemOpen';
 	IF @SystemOpen <> '1' THEN
@@ -418,7 +421,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	SET @2416796325297210Password2416796325297210 = NULL;
 	SET @OldToken = NULL;
 	SET @UserId = NULL;
@@ -465,7 +468,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	SET @2416796325297210Password2416796325297210 = NULL;
 	SELECT 2416796325297210Password2416796325297210 INTO @2416796325297210Password2416796325297210 FROM ex_user WHERE Account = p_Account AND SellerId = p_SellerId;
 	IF ROW_COUNT() = 0 THEN
@@ -495,7 +498,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	IF p_State <> 2 OR p_State <> 3 THEN #p_State = 2 成功 p_State = 3 失败
 		LEAVE proc;
 	END IF;
@@ -548,7 +551,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	IF p_Amount <= 0 THEN
 		SELECT @ErrCode AS errcode,"参数错误" AS errmsg;
 		LEAVE proc;
@@ -605,7 +608,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	IF p_Amount <= 0 THEN
 		SELECT @ErrCode AS errcode,"参数错误" AS errmsg;
 		LEAVE proc;
@@ -658,7 +661,12 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
+	IF EXISTS (SELECT id FROM ex_transfer_in WHERE OrderId = p_OrderId) THEN
+		SELECT @ErrCode AS errcode,"订单已存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
 	INSERT INTO ex_transfer_in(OrderId,UserId,SellerId,AssetType,Symbol,Amount,Side,State,Extra,Memo)
 	VALUES(p_OrderId,p_UserId,p_SellerId,p_AssetType,p_Symbol,p_Amount,2,1,p_Extra,p_Memo);
 	IF p_Amount <= 0 THEN
@@ -689,6 +697,7 @@ proc:BEGIN
 			LEAVE proc;
 		END IF;
 		UPDATE ex_transfer_in SET State = 2,Memo = '订单成功' WHERE OrderId = p_OrderId;
+		SELECT @AfterAssetAmt AS Balance;
 	COMMIT;
 END`
 	sql = replace_sql(sql)
@@ -707,7 +716,12 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
+	IF EXISTS (SELECT id FROM ex_transfer_in WHERE OrderId = p_OrderId) THEN
+		SELECT @ErrCode AS errcode,"订单已存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
 	INSERT INTO ex_transfer_in(OrderId,UserId,SellerId,AssetType,Symbol,Amount,Side,State,Extra,Memo)
 	VALUES(p_OrderId,p_UserId,p_SellerId,p_AssetType,p_Symbol,p_Amount,1,1,p_Extra,p_Memo);
 	IF p_Amount <= 0 THEN
@@ -729,8 +743,10 @@ proc:BEGIN
 	END IF;
 	SET @ErrCode = @ErrCode + 1;
 	START TRANSACTION;
+		SET @AfterAssetAmt = 0;
 		CALL ex_db_asset_alter(p_UserId,p_SellerId,p_AssetType,p_Symbol,p_Amount,p_Reason,p_Memo,@AfterAssetAmt);
 		UPDATE ex_transfer_in SET State = 2,Memo = '订单成功' WHERE OrderId = p_OrderId;
+		SELECT @AfterAssetAmt AS Balance;
 	COMMIT;
 END`
 	sql = replace_sql(sql)
@@ -749,7 +765,7 @@ proc:BEGIN
 		SELECT @errcode AS errcode,@errmsg AS errmsg;
 	END;
 	##############################################################################################
-	SET @ErrCode = 1;
+	SET @ErrCode = 10;
 	SET @SystemOpen = NULL;
 	SELECT ConfigValue INTO @SystemOpen FROM ex_config WHERE SellerId = p_SellerId AND ConfigName = 'SystemOpen';
 	IF @SystemOpen <> '1' THEN

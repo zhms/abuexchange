@@ -230,7 +230,7 @@ func GetDbResult(rows *sql.Rows, ref interface{}) *AbuDbError {
 	err := json.Unmarshal(jdata, &abuerr)
 	if err != nil {
 		logs.Error(err)
-		return &AbuDbError{1, err.Error()}
+		return &AbuDbError{2, err.Error()}
 	}
 	if abuerr.ErrCode != 0 && len(abuerr.ErrMsg) > 0 {
 		return &abuerr
@@ -238,7 +238,7 @@ func GetDbResult(rows *sql.Rows, ref interface{}) *AbuDbError {
 	err = json.Unmarshal(jdata, ref)
 	if err != nil {
 		logs.Error(err)
-		return &AbuDbError{1, err.Error()}
+		return &AbuDbError{3, err.Error()}
 	}
 	return nil
 }
@@ -383,14 +383,46 @@ func (ctx *AbuHttpContent) RespOK(objects ...interface{}) {
 	ctx.gin.JSON(http.StatusOK, resp)
 }
 
-func (ctx *AbuHttpContent) RespErr(errcode int, errmsg string) {
-	resp := new(HttpResponse)
-	ctx.Put("errcode", errcode)
-	ctx.Put("errmsg", errmsg)
-	resp.Code = HTTP_RESPONSE_CODE_ERROR
-	resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
-	resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
-	ctx.gin.JSON(http.StatusOK, resp)
+func (ctx *AbuHttpContent) RespErr(err error, errcode *int) bool {
+	(*errcode)--
+	if err != nil {
+		resp := new(HttpResponse)
+		ctx.Put("errcode", errcode)
+		ctx.Put("errmsg", err.Error())
+		resp.Code = HTTP_RESPONSE_CODE_ERROR
+		resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
+		resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
+		ctx.gin.JSON(http.StatusOK, resp)
+	}
+	return err != nil
+}
+
+func (ctx *AbuHttpContent) RespDbErr(dberr *AbuDbError) bool {
+	if dberr != nil && dberr.ErrCode > 0 && len(dberr.ErrMsg) > 0 {
+		resp := new(HttpResponse)
+		ctx.Put("errcode", dberr.ErrCode)
+		ctx.Put("errmsg", dberr.ErrMsg)
+		resp.Code = HTTP_RESPONSE_CODE_ERROR
+		resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
+		resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
+		ctx.gin.JSON(http.StatusOK, resp)
+		return true
+	}
+	return false
+}
+
+func (ctx *AbuHttpContent) RespErrString(err bool, errcode *int, errmsg string) bool {
+	(*errcode)--
+	if err {
+		resp := new(HttpResponse)
+		ctx.Put("errcode", errcode)
+		ctx.Put("errmsg", errmsg)
+		resp.Code = HTTP_RESPONSE_CODE_ERROR
+		resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
+		resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
+		ctx.gin.JSON(http.StatusOK, resp)
+	}
+	return err
 }
 
 func (ctx *AbuHttpContent) RespNoAuth(errcode int, errmsg string) {
@@ -665,6 +697,40 @@ func (c *AbuRedis) Expire(k string, to int) error {
 	return nil
 }
 
+func (c *AbuRedis) HSet(k string, f string, v interface{}) error {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	output, _ := json.Marshal(&v)
+	_, err := conn.Do("hset", k, f, string(output))
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (c *AbuRedis) HGet(k string, f string) interface{} {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	ret, err := conn.Do("hget", k, f)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	return ret
+}
+
+func (c *AbuRedis) HDel(k string, f string) error {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	_, err := conn.Do("hdel", k, f)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	return nil
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 //db
 /////////////////////////////////////////////////////////////////////////////////
@@ -926,36 +992,39 @@ func RsaSign(data interface{}, privatekey string) string {
 	privatekey = strings.Replace(privatekey, "-----END PRIVATE KEY-----", "", -1)
 	privatekey = strings.Replace(privatekey, "-----BEGIN RSA PRIVATE KEY-----", "", -1)
 	privatekey = strings.Replace(privatekey, "-----END RSA PRIVATE KEY-----", "", -1)
-	jbytes, _ := json.Marshal(&data)
-	jdata := make(map[string]interface{})
-	erra := json.Unmarshal(jbytes, &jdata)
-	if erra != nil {
-		logs.Error(erra)
-		return ""
-	}
+	t := reflect.TypeOf(data)
+	v := reflect.ValueOf(data)
 	keys := []string{}
-	for k := range jdata {
-		keys = append(keys, k)
+	for i := 0; i < t.NumField(); i++ {
+		fn := strings.ToLower(t.Field(i).Name)
+		if fn != "sign" {
+			keys = append(keys, t.Field(i).Name)
+		}
 	}
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i] < keys[j]
 	})
-	signstr := ""
+	var sb strings.Builder
 	for i := 0; i < len(keys); i++ {
-		if strings.ToLower(keys[i]) == "sign" {
-			continue
+		switch sv := v.FieldByName(keys[i]).Interface().(type) {
+		case string:
+			sb.WriteString(sv)
+		case int:
+			sb.WriteString(fmt.Sprint(sv))
+		case int8:
+			sb.WriteString(fmt.Sprint(sv))
+		case int16:
+			sb.WriteString(fmt.Sprint(sv))
+		case int32:
+			sb.WriteString(fmt.Sprint(sv))
+		case int64:
+			sb.WriteString(fmt.Sprint(sv))
+		case float32:
+			sb.WriteString(fmt.Sprint(sv))
+		case float64:
+			sb.WriteString(fmt.Sprint(sv))
 		}
-		if reflect.TypeOf(jdata[keys[i]]).Name() == "" {
-			d := jdata[keys[i]].([]interface{})
-			for j := 0; j < len(d); j++ {
-				signstr += fmt.Sprint(d[j])
-			}
-		} else {
-			signstr += fmt.Sprint(jdata[keys[i]])
-		}
-
 	}
-	fmt.Println(signstr)
 	privatekeybase64, errb := base64.StdEncoding.DecodeString(privatekey)
 	if errb != nil {
 		logs.Error(errb)
@@ -966,7 +1035,7 @@ func RsaSign(data interface{}, privatekey string) string {
 		logs.Error(errc)
 		return ""
 	}
-	hashmd5 := md5.Sum([]byte(signstr))
+	hashmd5 := md5.Sum([]byte(sb.String()))
 	hashed := hashmd5[:]
 	sign, errd := rsa.SignPKCS1v15(crand.Reader, privatekeyx509.(*rsa.PrivateKey), crypto.MD5, hashed)
 	if errd != nil {
@@ -976,40 +1045,45 @@ func RsaSign(data interface{}, privatekey string) string {
 	return base64.StdEncoding.EncodeToString(sign)
 }
 
-func RsaVerify(data interface{}, signedstr string, publickey string) bool {
+func RsaVerify(data interface{}, publickey string) bool {
 	publickey = strings.Replace(publickey, "-----BEGIN PUBLIC KEY-----", "", -1)
 	publickey = strings.Replace(publickey, "-----END PUBLIC KEY-----", "", -1)
 	publickey = strings.Replace(publickey, "-----BEGIN RSA PUBLIC KEY-----", "", -1)
 	publickey = strings.Replace(publickey, "-----END RSA PUBLIC KEY-----", "", -1)
-	jbytes, _ := json.Marshal(&data)
-	jdata := make(map[string]interface{})
-	erra := json.Unmarshal(jbytes, &jdata)
-	if erra != nil {
-		logs.Error(erra)
-		return false
-	}
+	t := reflect.TypeOf(data)
+	v := reflect.ValueOf(data)
 	keys := []string{}
-	for k := range jdata {
-		keys = append(keys, k)
+	for i := 0; i < t.NumField(); i++ {
+		fn := strings.ToLower(t.Field(i).Name)
+		if fn != "sign" {
+			keys = append(keys, t.Field(i).Name)
+		}
 	}
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i] < keys[j]
 	})
-	signstr := ""
+	var sb strings.Builder
 	for i := 0; i < len(keys); i++ {
-		if strings.ToLower(keys[i]) == "sign" {
-			continue
+		switch sv := v.FieldByName(keys[i]).Interface().(type) {
+		case string:
+			sb.WriteString(sv)
+		case int:
+			sb.WriteString(fmt.Sprint(sv))
+		case int8:
+			sb.WriteString(fmt.Sprint(sv))
+		case int16:
+			sb.WriteString(fmt.Sprint(sv))
+		case int32:
+			sb.WriteString(fmt.Sprint(sv))
+		case int64:
+			sb.WriteString(fmt.Sprint(sv))
+		case float32:
+			sb.WriteString(fmt.Sprint(sv))
+		case float64:
+			sb.WriteString(fmt.Sprint(sv))
 		}
-		if reflect.TypeOf(jdata[keys[i]]).Name() == "" {
-			d := jdata[keys[i]].([]interface{})
-			for j := 0; j < len(d); j++ {
-				signstr += fmt.Sprint(d[j])
-			}
-		} else {
-			signstr += fmt.Sprint(jdata[keys[i]])
-		}
-
 	}
+	signedstr := fmt.Sprint(v.FieldByName("Sign"))
 	publickeybase64, errb := base64.StdEncoding.DecodeString(publickey)
 	if errb != nil {
 		logs.Error(errb)
@@ -1021,7 +1095,7 @@ func RsaVerify(data interface{}, signedstr string, publickey string) bool {
 		return false
 	}
 	hash := md5.New()
-	hash.Write([]byte(signstr))
+	hash.Write([]byte(sb.String()))
 	signdata, _ := base64.StdEncoding.DecodeString(signedstr)
 	errd := rsa.VerifyPKCS1v15(publickeyx509.(*rsa.PublicKey), crypto.MD5, hash.Sum(nil), signdata)
 	return errd == nil
@@ -1331,4 +1405,200 @@ func (c *AbuWhere) GetParams() []interface{} {
 	params = append(params, c.Params...)
 	params = append(params, c.Params...)
 	return params
+}
+
+const invalidType = "invalid type=%v"
+
+func InterfaceToSortedJSONStr(i interface{}) (str string, err error) {
+	v, err := interfaceValExtract(i)
+	if err != nil {
+		return
+	}
+	if vStr, ok := v.(string); ok {
+		str = vStr
+		return
+	}
+	if vMap, ok := v.(toSignMap); ok && len(vMap) == 0 {
+		str = ""
+		return
+	}
+	return marshalToStr(v)
+}
+
+func interfaceValExtract(i interface{}) (v interface{}, err error) {
+	v = ""
+	typ := reflect.TypeOf(i)
+	val := reflect.ValueOf(i)
+	if typ.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return
+		}
+		typ = typ.Elem()
+		val = val.Elem()
+	}
+	k := typ.Kind()
+	switch k {
+	case reflect.Bool:
+		v = val.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if val.Int() == 0 {
+			return
+		}
+		v = val.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if val.Uint() == 0 {
+			return
+		}
+		v = val.Uint()
+	case reflect.Float32, reflect.Float64:
+		if val.IsZero() {
+			return
+		}
+		v = val.Float()
+	case reflect.String:
+		v = val.String()
+	case reflect.Slice, reflect.Array:
+		if val.Len() == 0 {
+			return
+		}
+		v, err = sliceValExtract(val)
+	case reflect.Struct:
+		if val.IsZero() {
+			return
+		}
+		v, err = structValToSortedMap(typ, val)
+	case reflect.Map:
+		if val.Len() == 0 {
+			return
+		}
+		v, err = mapValToSortedMap(val)
+	default:
+		logs.Error(invalidType, k)
+	}
+	return
+}
+
+func structValToSortedMap(typs reflect.Type, vals reflect.Value) (sc toSignMap, err error) {
+	sc = make(toSignMap)
+	num := vals.NumField()
+	for i := 0; i < num; i++ {
+		val := vals.Field(i)
+		typ := typs.Field(i)
+		if isSkippedSignField(typ.Tag) {
+			continue
+		}
+		if !val.CanInterface() {
+			continue
+		}
+		var v interface{}
+		v, err = interfaceValExtract(val.Interface())
+		if err != nil {
+			return
+		}
+		name := typ.Name
+		if jsonName := getJSONNameInTag(typ.Tag); jsonName != "" {
+			name = jsonName
+		}
+		sc[name] = v
+	}
+	sc = sc.ToSortedNoZeroValue()
+	return
+}
+
+func isSkippedSignField(tag reflect.StructTag) bool {
+	v, ok := tag.Lookup("json")
+	if ok && v == "-" {
+		return true
+	}
+	v, ok = tag.Lookup("sign")
+	return ok && v == "-"
+}
+
+func getJSONNameInTag(tag reflect.StructTag) string {
+	v, ok := tag.Lookup("json")
+	if ok {
+		return strings.Split(v, ",")[0]
+	}
+	return ""
+}
+func mapValToSortedMap(vals reflect.Value) (sc toSignMap, err error) {
+	sc = make(toSignMap)
+	iter := vals.MapRange()
+	for iter.Next() {
+		key, er := interfaceValExtract(iter.Key().Interface())
+		if er != nil {
+			err = er
+			return
+		}
+		k := fmt.Sprintf("%v", key)
+		var val interface{}
+		val, err = interfaceValExtract(iter.Value().Interface())
+		if err != nil {
+			return
+		}
+		sc[k] = val
+	}
+	sc = sc.ToSortedNoZeroValue()
+	return
+}
+func sliceValExtract(vals reflect.Value) (s []interface{}, err error) {
+	num := vals.Len()
+	for i := 0; i < num; i++ {
+		val := vals.Index(i)
+		k := val.Kind()
+		if isNotValidType(k) {
+			logs.Error(invalidType, k)
+			return
+		}
+		if !val.CanInterface() {
+			continue
+		}
+		v := val.Interface()
+		if k == reflect.Struct || k == reflect.Map || k == reflect.Slice || k == reflect.Array {
+			v, err = interfaceValExtract(val.Interface())
+			if err != nil {
+				return
+			}
+		}
+		s = append(s, v)
+	}
+	return
+}
+
+func isNotValidType(k reflect.Kind) bool {
+	return k == reflect.Invalid || k == reflect.Complex64 || k == reflect.Complex128 ||
+		k == reflect.Chan || k == reflect.Func || k == reflect.UnsafePointer
+}
+
+type toSignMap map[string]interface{}
+
+func (sc toSignMap) ToSortedNoZeroValue() toSignMap {
+	if len(sc) == 0 {
+		return sc
+	}
+	var keys []string
+	for k, v := range sc {
+		if k == "" || v == "" {
+			continue
+		}
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	sorted := make(toSignMap)
+	for _, v := range keys {
+		sorted[v] = sc[v]
+	}
+	return sorted
+}
+
+func marshalToStr(i interface{}) (str string, err error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(i)
+	if err != nil {
+		return
+	}
+	str = strings.TrimSuffix(buffer.String(), "\n")
+	return
 }

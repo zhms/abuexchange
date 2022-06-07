@@ -25,21 +25,30 @@ type SellerData struct {
 	Remark     string
 	CreateTime string
 }
+type CacheSellerData struct {
+	SellerId              int
+	SellerName            string
+	State                 int
+	ApiPublicKey          string
+	ApiPrivateKey         string
+	ApiThirdPublicKey     string
+	ApiRiskPublicKey      string
+	ApiRiskPrivateKey     string
+	ApiRiskThirdPublicKey string
+}
 
 func seller_list(ctx *abugo.AbuHttpContent) {
 	defer recover()
-	errcode := -1
+	errcode := 0
 	type RequestData struct {
 		Page     int
 		PageSize int
 	}
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(errcode, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	errcode--
 	if reqdata.Page == 0 {
 		reqdata.Page = 1
 	}
@@ -47,12 +56,10 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 		reqdata.PageSize = 10
 	}
 	token := GetToken(ctx)
-	if token.SellerId != -1 {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
 		return
 	}
-	if !Auth2(token, "系统管理", "运营商管理", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "查"), &errcode, "权限不足") {
 		return
 	}
 	where := abugo.AbuWhere{}
@@ -69,12 +76,9 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	dbresult, err := db.Conn().Query(where.Sql(db_seller_tablename, reqdata.Page, reqdata.PageSize), where.GetParams()...)
-	if err != nil {
-		logs.Error(err)
-		ctx.RespErr(errcode, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	errcode--
 	data := []SellerData{}
 	for dbresult.Next() {
 		d := SellerData{}
@@ -92,7 +96,7 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 
 func seller_add(ctx *abugo.AbuHttpContent) {
 	defer recover()
-	errcode := -1
+	errcode := 0
 	type RequestData struct {
 		SellerName string `validate:"required"`
 		State      int    `validate:"required"`
@@ -100,18 +104,14 @@ func seller_add(ctx *abugo.AbuHttpContent) {
 	}
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	errcode--
 	token := GetToken(ctx)
-	if token.SellerId != -1 {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
 		return
 	}
-	if !Auth2(token, "系统管理", "运营商管理", "增") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "增"), &errcode, "权限不足") {
 		return
 	}
 	sql := fmt.Sprintf("insert into %s(SellerName,State,Remark)values(?,?,?)", db_seller_tablename)
@@ -128,19 +128,17 @@ func seller_modify(ctx *abugo.AbuHttpContent) {
 		State      int    `validate:"required"`
 		Remark     string
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if token.SellerId != -1 {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
 		return
 	}
-	if !Auth2(token, "系统管理", "运营商管理", "改") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "改"), &errcode, "权限不足") {
 		return
 	}
 	sql := fmt.Sprintf("update %s set SellerName = ?,State = ?,Remark = ? where SellerId = ?", db_seller_tablename)
@@ -154,19 +152,17 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 	type RequestData struct {
 		SellerId int `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if token.SellerId != -1 {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
 		return
 	}
-	if !Auth2(token, "系统管理", "运营商管理", "增") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "增"), &errcode, "权限不足") {
 		return
 	}
 	sql := fmt.Sprintf("delete from  %s where SellerId = ?", db_seller_tablename)
@@ -185,6 +181,7 @@ func Init() {
 	db = new(abugo.AbuDb)
 	db.Init("server.db")
 	SetupDatabase()
+	seller_flush(nil)
 	{
 		http.PostNoAuth("/admin/user/login", user_login)
 		http.Post("/admin/login_log", login_log)
@@ -205,6 +202,7 @@ func Init() {
 		http.Post("seller/add", seller_add)
 		http.Post("seller/delete", seller_delete)
 		http.Post("seller/modify", seller_modify)
+		http.Post("seller/flush", seller_flush)
 	}
 	sql := "select RoleData from z_admin_role where SellerId = -1 and RoleName = '超级管理员'"
 	var dbauthdata string
@@ -352,10 +350,10 @@ func user_login(ctx *abugo.AbuHttpContent) {
 		Password   string `validate:"required"`
 		VerifyCode string `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type MenuData struct {
@@ -376,28 +374,23 @@ func user_login(ctx *abugo.AbuHttpContent) {
 	var logintime string
 	var logincount int
 	qserr, qsresult := db.QueryScan(sqlstr, sqlparam, &userid, &sellerid, &password, &rolename, &token, &userstate, &googlesecret, &logintime, &logincount)
-	if qserr != nil {
-		ctx.RespErr(-2, qserr.Error())
+	if ctx.RespErr(qserr, &errcode) {
 		return
 	}
-	if !qsresult {
-		ctx.RespErr(-3, "账号不存在")
+	if ctx.RespErrString(!qsresult, &errcode, "账号不存在") {
 		return
 	}
-	if userstate != 1 {
-		ctx.RespErr(-4, "账号已被禁用")
+	if ctx.RespErrString(userstate != 1, &errcode, "账号已被禁用") {
 		return
 	}
-	if password != reqdata.Password {
-		ctx.RespErr(-5, "密码不正确")
+	if ctx.RespErrString(password != reqdata.Password, &errcode, "密码不正确") {
 		return
 	}
 	if sellerid != -1 {
 		var dbsellerid int
 		sqlstr = fmt.Sprintf("select SellerId from %s where SellerId = ?", db_seller_tablename)
 		db.QueryScan(sqlstr, []interface{}{sellerid}, &dbsellerid)
-		if dbsellerid == 0 {
-			ctx.RespErr(-6, "所属运营商已停用")
+		if ctx.RespErrString(dbsellerid == 0, &errcode, "所属运营商已停用") {
 			return
 		}
 	}
@@ -405,16 +398,13 @@ func user_login(ctx *abugo.AbuHttpContent) {
 	sqlstr = "select RoleData from z_admin_role where RoleName = ? and SellerId = ?"
 	sqlparam = []interface{}{rolename, sellerid}
 	qserr, qsresult = db.QueryScan(sqlstr, sqlparam, &authdata)
-	if qserr != nil {
-		ctx.RespErr(-2, qserr.Error())
+	if ctx.RespErr(qserr, &errcode) {
 		return
 	}
-	if !qsresult {
-		ctx.RespErr(-6, "角色不存在")
+	if ctx.RespErrString(!qsresult, &errcode, "角色不存在") {
 		return
 	}
-	if !debug && len(googlesecret) > 0 && !abugo.VerifyGoogleCode(googlesecret, reqdata.VerifyCode) {
-		ctx.RespErr(-10, "验证码不正确")
+	if ctx.RespErrString(!debug && len(googlesecret) > 0 && !abugo.VerifyGoogleCode(googlesecret, reqdata.VerifyCode), &errcode, "验证码不正确") {
 		return
 	}
 	if len(token) > 0 {
@@ -428,14 +418,12 @@ func user_login(ctx *abugo.AbuHttpContent) {
 	http.SetToken(token, tokendata)
 	sqlstr = "update z_admin_user set Token = ?,LoginCount = LoginCount + 1,LoginTime = now(),LoginIp = ? where id = ?"
 	err = db.QueryNoResult(sqlstr, token, ctx.GetIp(), userid)
-	if err != nil {
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	sqlstr = "insert into z_admin_login_log(UserId,SellerId,Account,Token,LoginIp)values(?,?,?,?,?)"
 	err = db.QueryNoResult(sqlstr, userid, sellerid, reqdata.Account, token, ctx.GetIp())
-	if err != nil {
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	menu := []MenuData{}
@@ -498,10 +486,10 @@ func login_log(ctx *abugo.AbuHttpContent) {
 		Account  string
 		SellerId int
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	if reqdata.Page == 0 {
@@ -511,12 +499,10 @@ func login_log(ctx *abugo.AbuHttpContent) {
 		reqdata.PageSize = 10
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "登录日志", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "登录日志", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-5, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	where := abugo.AbuWhere{}
@@ -533,9 +519,7 @@ func login_log(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	dbresult, err := db.Conn().Query(where.Sql("z_admin_login_log", reqdata.Page, reqdata.PageSize), where.GetParams()...)
-	if err != nil {
-		logs.Error(err)
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type ReturnData struct {
@@ -567,10 +551,10 @@ func role_list(ctx *abugo.AbuHttpContent) {
 		PageSize int
 		SellerId int
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	if reqdata.Page == 0 {
@@ -580,12 +564,10 @@ func role_list(ctx *abugo.AbuHttpContent) {
 		reqdata.PageSize = 10
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "角色管理", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "角色管理", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-5, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	where := abugo.AbuWhere{}
@@ -602,9 +584,7 @@ func role_list(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	dbresult, err := db.Conn().Query(where.Sql("z_admin_role", reqdata.Page, reqdata.PageSize), where.GetParams()...)
-	if err != nil {
-		logs.Error(err)
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type ReturnData struct {
@@ -635,25 +615,22 @@ func role_listall(ctx *abugo.AbuHttpContent) {
 		PageSize int
 		SellerId int
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "角色管理", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "角色管理", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-5, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	sql := "select RoleName from z_admin_role where SellerId = ?"
 	dbresult, err := db.Conn().Query(sql, reqdata.SellerId)
-	if err != nil {
-		ctx.RespErr(1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	names := []string{}
@@ -671,19 +648,17 @@ func role_data(ctx *abugo.AbuHttpContent) {
 		SellerId int    `validate:"required"`
 		RoleName string `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "角色管理", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "角色管理", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-5, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	sql := "select RoleData from z_admin_role where SellerId = ? and RoleName = ?"
@@ -743,60 +718,52 @@ func role_modify(ctx *abugo.AbuHttpContent) {
 		RoleName string `validate:"required"`
 		RoleData string `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "角色管理", "改") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "角色管理", "改"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-5, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	var ParentSellerId int
 	var ParentRoleName string
 	sql := "select ParentSellerId,Parent from z_admin_role where SellerId = ? and RoleName = ?"
 	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &ParentSellerId, &ParentRoleName)
-	if len(ParentRoleName) == 0 {
-		ctx.RespErr(3, "上级角色不存在")
+	if ctx.RespErrString(len(ParentRoleName) == 0, &errcode, "上级角色不存在") {
 		return
 	}
 	var ParentRoleData string
 	sql = "select RoleData from z_admin_role where SellerId = ? and RoleName = ?"
 	db.QueryScan(sql, []interface{}{ParentSellerId, ParentRoleName}, &ParentRoleData)
-	if len(ParentRoleData) == 0 {
-		ctx.RespErr(3, "获取上级角色数据失败")
+	if ctx.RespErrString(len(ParentRoleData) == 0, &errcode, "获取上级角色数据失败") {
 		return
 	}
 	jparent := make(map[string]interface{})
 	err = json.Unmarshal([]byte(ParentRoleData), &jparent)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	jdata := make(map[string]interface{})
 	err = json.Unmarshal([]byte(reqdata.RoleData), &jdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	result := ""
 	for k, v := range jdata {
 		role_check(k, jparent, v.(map[string]interface{}), &result)
 	}
-	if len(result) > 0 {
-		ctx.RespErr(-20, "权限大过上级角色")
+	if ctx.RespErrString(len(result) > 0, &errcode, "权限大过上级角色") {
 		return
 	}
 	sql = "update z_admin_role set  RoleData = ? where SellerId = ? and RoleName = ?"
 	err = db.QueryNoResult(sql, reqdata.RoleData, reqdata.SellerId, reqdata.RoleName)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	WriteAdminLog("修改角色", ctx, reqdata)
@@ -811,58 +778,51 @@ func role_add(ctx *abugo.AbuHttpContent) {
 		RoleName       string `validate:"required"`
 		RoleData       string `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "角色管理", "增") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "角色管理", "增"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-5, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	if reqdata.SellerId != -1 && reqdata.SellerId != reqdata.ParentSellerId && reqdata.ParentSellerId != -1 {
-		ctx.RespErr(-5, "上级角色运营商只能是总后台角色或跟自己所属运营商一致,不可以是别的运营商")
+	if ctx.RespErrString(reqdata.SellerId != -1 && reqdata.SellerId != reqdata.ParentSellerId && reqdata.ParentSellerId != -1, &errcode, "上级角色运营商只能是总后台角色或跟自己所属运营商一致,不可以是别的运营商") {
 		return
 	}
-	if reqdata.SellerId == -1 && reqdata.ParentSellerId != -1 {
-		ctx.RespErr(-5, "总后台角色上级角色只能是总后台的角色")
+	if ctx.RespErrString(reqdata.SellerId == -1 && reqdata.ParentSellerId != -1, &errcode, "总后台角色上级角色只能是总后台的角色") {
 		return
 	}
 	var rid int = 0
 	sql := "select id from z_admin_role where SellerId = ? and RoleName = ?"
 	db.QueryScan(sql, []interface{}{reqdata.ParentSellerId, reqdata.Parent}, &rid)
-	if rid == 0 {
-		ctx.RespErr(3, "上级角色不存在")
+	if ctx.RespErrString(rid == 0, &errcode, "上级角色不存在") {
 		return
 	}
 	rid = 0
 	sql = "select id from z_admin_role where SellerId = ? and RoleName = ? "
 	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &rid)
-	if rid > 0 {
-		ctx.RespErr(3, "角色已经存在")
+	if ctx.RespErrString(rid > 0, &errcode, "角色已经存在") {
 		return
 	}
 	if reqdata.SellerId != -1 {
 		sql = fmt.Sprintf("select SellerId from %s where SellerId = ? and state = 1", db_seller_tablename)
 		var sellerid int
 		db.QueryScan(sql, []interface{}{reqdata.SellerId}, &sellerid)
-		if sellerid == 0 {
-			ctx.RespErr(3, "运营商不存在")
+		if ctx.RespErrString(sellerid == 0, &errcode, "运营商不存在") {
 			return
 		}
 	}
 	sql = "insert into z_admin_role(RoleName,SellerId,ParentSellerId,Parent,RoleData)values(?,?,?,?,?)"
 	param := []interface{}{reqdata.RoleName, reqdata.SellerId, reqdata.ParentSellerId, reqdata.Parent, reqdata.RoleData}
 	err = db.QueryNoResult(sql, param...)
-	if err != nil {
+	if ctx.RespErr(err, &errcode) {
 		logs.Error(err)
-		ctx.RespErr(-1, err.Error())
+		return
 	}
 	WriteAdminLog("添加角色", ctx, reqdata)
 	ctx.RespOK()
@@ -873,38 +833,33 @@ func role_delete(ctx *abugo.AbuHttpContent) {
 		SellerId int    `validate:"required"`
 		RoleName string `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "角色管理", "删") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "角色管理", "删"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	sql := "select id,Parent from z_admin_role where ParentSellerId = ? and Parent = ?"
 	var id int
 	var parent string
 	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &id, &parent)
-	if id > 0 {
-		ctx.RespErr(-2, "该角色有下级角色,不可删除")
+	if ctx.RespErrString(id > 0, &errcode, "该角色有下级角色,不可删除") {
 		return
 	}
-	if parent == "god" {
-		ctx.RespErr(-5, "该角色不可删除")
+	if ctx.RespErrString(parent == "god", &errcode, "该角色不可删除") {
 		return
 	}
 	id = 0
 	sql = "select id from z_admin_user where RoleSellerId = ? and RoleName = ?"
 	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &id)
-	if id > 0 {
-		ctx.RespErr(-3, "该角色下存在账号,不可删除")
+	if ctx.RespErrString(id > 0, &errcode, "该角色下存在账号,不可删除") {
 		return
 	}
 	sql = "delete from z_admin_role where SellerId = ? and RoleName = ?"
@@ -921,10 +876,10 @@ func opt_log(ctx *abugo.AbuHttpContent) {
 		Account  string
 		Opt      string
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	if reqdata.Page == 0 {
@@ -934,12 +889,10 @@ func opt_log(ctx *abugo.AbuHttpContent) {
 		reqdata.PageSize = 10
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "操作日志", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "操作日志", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	where := abugo.AbuWhere{}
@@ -957,9 +910,7 @@ func opt_log(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	dbresult, err := db.Conn().Query(where.Sql("z_admin_opt_log", reqdata.Page, reqdata.PageSize), where.GetParams()...)
-	if err != nil {
-		logs.Error(err)
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type ReturnData struct {
@@ -993,10 +944,10 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		Account  string
 		SellerId int
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	if reqdata.Page == 0 {
@@ -1006,12 +957,10 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		reqdata.PageSize = 10
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "账号管理", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "账号管理", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	where := abugo.AbuWhere{}
@@ -1029,9 +978,7 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	dbresult, err := db.Conn().Query(where.Sql("z_admin_user", reqdata.Page, reqdata.PageSize), where.GetParams()...)
-	if err != nil {
-		logs.Error(err)
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type ReturnData struct {
@@ -1073,30 +1020,26 @@ func user_modify(ctx *abugo.AbuHttpContent) {
 		State        int    `validate:"required"`
 		Remark       string
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "账号管理", "改") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "账号管理", "改"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	if reqdata.RoleSellerId != -1 && reqdata.RoleSellerId != reqdata.SellerId {
-		ctx.RespErr(-2, "运营商不正确")
+	if ctx.RespErrString(reqdata.RoleSellerId != -1 && reqdata.RoleSellerId != reqdata.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	sql := "select id from z_admin_role  where SellerId = ? and RoleName = ?"
 	var rid int
 	db.QueryScan(sql, []interface{}{reqdata.RoleSellerId, reqdata.RoleName}, &rid)
-	if rid == 0 {
-		ctx.RespErr(-3, "角色不存在")
+	if ctx.RespErrString(rid == 0, &errcode, "角色不存在") {
 		return
 	}
 	if len(reqdata.Password) > 0 {
@@ -1124,19 +1067,17 @@ func user_delete(ctx *abugo.AbuHttpContent) {
 		Account  string `validate:"required"`
 		SellerId int    `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "账号管理", "改") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "账号管理", "改"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	sql := "delete from z_admin_user where Id = ? and Account = ? and SellerId = ?"
@@ -1155,37 +1096,32 @@ func user_add(ctx *abugo.AbuHttpContent) {
 		State        int    `validate:"required"`
 		Remark       string
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "账号管理", "增") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "账号管理", "增"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	if reqdata.RoleSellerId != -1 && reqdata.RoleSellerId != reqdata.SellerId {
-		ctx.RespErr(-2, "运营商不正确")
+	if ctx.RespErrString(reqdata.RoleSellerId != -1 && reqdata.RoleSellerId != reqdata.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	sql := "select id from z_admin_role  where SellerId = ? and RoleName = ?"
 	var rid int
 	db.QueryScan(sql, []interface{}{reqdata.RoleSellerId, reqdata.RoleName}, &rid)
-	if rid == 0 {
-		ctx.RespErr(-3, "角色不存在")
+	if ctx.RespErrString(rid == 0, &errcode, "角色不存在") {
 		return
 	}
 	sql = "select id from z_admin_user where Account = ? and SellerId = ?"
 	var uid int
 	db.QueryScan(sql, []interface{}{reqdata.Account, reqdata.SellerId}, &uid)
-	if uid > 0 {
-		ctx.RespErr(-3, "账号已经存在")
+	if ctx.RespErrString(uid > 0, &errcode, "账号已经存在") {
 		return
 	}
 	sql = "insert into z_admin_user(Account,Password,SellerId,RoleSellerId,RoleName,State)values(?,?,?,?,?,?)"
@@ -1200,19 +1136,17 @@ func user_google(ctx *abugo.AbuHttpContent) {
 		Account  string `validate:"required"`
 		SellerId int    `validate:"required"`
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := GetToken(ctx)
-	if !Auth2(token, "系统管理", "账号管理", "改") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!Auth2(token, "系统管理", "账号管理", "改"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	verifykey := abugo.GetGoogleSecret()
@@ -1229,10 +1163,10 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 		ctx.RespOK()
 		return
 	}
+	errcode := 0
 	sql := fmt.Sprintf("select * from %sseller where State = 1", DbPrefix)
 	dbresult, err := db.Conn().Query(sql)
-	if err != nil {
-		ctx.RespErr(1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type ReturnData struct {
@@ -1249,4 +1183,43 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 	}
 	dbresult.Close()
 	ctx.RespOK(data)
+}
+
+func seller_flush(ctx *abugo.AbuHttpContent) {
+	sql := fmt.Sprintf("select * from %sseller", DbPrefix)
+	dbresult, err := db.Conn().Query(sql)
+	errcode := 0
+	if ctx != nil {
+		if ctx.RespErr(err, &errcode) {
+			return
+		}
+	} else {
+		if err != nil {
+			logs.Error(err)
+			return
+		}
+	}
+	for dbresult.Next() {
+		d := CacheSellerData{}
+		abugo.GetDbResult(dbresult, &d)
+		if d.State == 1 {
+			redis.HSet("exchange:seller", fmt.Sprint(d.SellerId), d)
+		} else {
+			redis.HDel("exchange:seller", fmt.Sprint(d.SellerId))
+		}
+	}
+	dbresult.Close()
+	if ctx != nil {
+		ctx.RespOK()
+	}
+}
+
+func GetSeller(SellerId int) *CacheSellerData {
+	data := redis.HGet("exchange:seller", fmt.Sprint(SellerId))
+	if data != nil {
+		r := CacheSellerData{}
+		json.Unmarshal(data.([]uint8), &r)
+		return &r
+	}
+	return nil
 }

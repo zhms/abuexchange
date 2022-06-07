@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"xserver/abugo"
 	"xserver/server"
-
-	"github.com/beego/beego/logs"
 )
 
 type UserController struct {
@@ -27,19 +25,17 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		UserId   int
 		Account  string
 	}
+	errcode := 0
 	reqdata := RequestData{}
 	err := ctx.RequestData(&reqdata)
-	if err != nil {
-		ctx.RespErr(-1, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	token := server.GetToken(ctx)
-	if !server.Auth2(token, "玩家管理", "账号管理", "查") {
-		ctx.RespErr(-300, "权限不足")
+	if ctx.RespErrString(!server.Auth2(token, "玩家管理", "账号管理", "查"), &errcode, "权限不足") {
 		return
 	}
-	if token.SellerId > 0 && reqdata.SellerId != token.SellerId {
-		ctx.RespErr(-1, "运营商不正确")
+	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
 	if reqdata.SellerId == -1 {
@@ -60,9 +56,7 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	dbresult, err := server.Db().Conn().Query(where.Sql(fmt.Sprintf("%suser", server.DbPrefix), reqdata.Page, reqdata.PageSize), where.GetParams()...)
-	if err != nil {
-		logs.Error(err)
-		ctx.RespErr(-2, err.Error())
+	if ctx.RespErr(err, &errcode) {
 		return
 	}
 	type ReturnData struct {
