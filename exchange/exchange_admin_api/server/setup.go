@@ -57,7 +57,7 @@ func SetupDatabase() {
 			Description varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '描述',
 			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
 			PRIMARY KEY (Id) USING BTREE
-		   ) ENGINE = MyISAM AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
+		   ) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE IF NOT EXISTS ex_asset_log  (
@@ -71,7 +71,7 @@ func SetupDatabase() {
 			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '变化时间',
 			PRIMARY KEY (Id) USING BTREE,
 			INDEX UserId(UserId) USING BTREE
-		) ENGINE = MyISAM AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
+		) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE IF NOT EXISTS ex_config  (
@@ -150,7 +150,7 @@ func SetupDatabase() {
 			PRIMARY KEY (Id) USING BTREE,
 			INDEX UserId(UserId) USING BTREE,
 			INDEX OrderId(OrderId) USING BTREE
-		  ) ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '本系统转入转出到其他系统的订单' ROW_FORMAT = DYNAMIC;`
+		  ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '本系统转入转出到其他系统的订单' ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE IF NOT EXISTS ex_user  (
@@ -164,6 +164,9 @@ func SetupDatabase() {
 			NickName varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '昵称',
 			PhoneNum varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '绑定手机',
 			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录token',
+			Agents varchar(10240) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'json数组,所有上级id,下标0是顶级代理,越往后,代理等级越低',
+			TopAgentId int(11) NULL DEFAULT NULL COMMENT '顶级代理id',
+			AgentId int(11) NULL DEFAULT NULL COMMENT '直属代理',
 			RegisterIp varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '注册ip',
 			RegisterTime datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '注册时间',
 			PRIMARY KEY (UserId) USING BTREE,
@@ -183,7 +186,7 @@ func SetupDatabase() {
 		  ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = `CREATE TABLE IF NOT EXISTS z_admin_login_log  (
+	sql = `CREATE TABLE IF NOT EXISTS admin_login_log  (
 			Id int(11) NOT NULL AUTO_INCREMENT,
 			UserId int(11) NULL DEFAULT NULL COMMENT '管理员id',
 			SellerId int(11) NULL DEFAULT NULL COMMENT '运营商',
@@ -197,7 +200,7 @@ func SetupDatabase() {
 		) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = `CREATE TABLE IF NOT EXISTS z_admin_opt_log  (
+	sql = `CREATE TABLE IF NOT EXISTS admin_opt_log  (
 			Id int(11) NOT NULL AUTO_INCREMENT,
 			Account varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '操作账号',
 			SellerId int(11) NOT NULL DEFAULT -1 COMMENT '账号所属运营商',
@@ -212,7 +215,7 @@ func SetupDatabase() {
 		) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = `CREATE TABLE IF NOT EXISTS z_admin_role  (
+	sql = `CREATE TABLE IF NOT EXISTS admin_role  (
 			Id int(11) NOT NULL AUTO_INCREMENT,
 			RoleName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
 			SellerId int(11) NOT NULL,
@@ -222,12 +225,12 @@ func SetupDatabase() {
 			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
 			PRIMARY KEY (RoleName, SellerId) USING BTREE,
 			UNIQUE INDEX id(Id) USING BTREE
-		) ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+		) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = "INSERT IGNORE INTO `z_admin_role` VALUES (1, '超级管理员', -1, -1, 'god', '{}', now());"
+	sql = "INSERT IGNORE INTO `admin_role` VALUES (1, '超级管理员', -1, -1, 'god', '{}', now());"
 	db.QueryNoResult(sql)
-	sql = `CREATE TABLE IF NOT EXISTS z_admin_user  (
+	sql = `CREATE TABLE IF NOT EXISTS admin_user  (
 			Id int(11) NOT NULL AUTO_INCREMENT,
 			Account varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '账号',
 			Password varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '密码',
@@ -244,12 +247,53 @@ func SetupDatabase() {
 			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 			PRIMARY KEY (Account) USING BTREE,
 			UNIQUE INDEX Id(Id) USING BTREE
-		) ENGINE = InnoDB AUTO_INCREMENT = 0 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
+		) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = `INSERT IGNORE INTO z_admin_user VALUES (1, 'admin', '21232f297a57a5a743894a0e4a801fc3', -1, -1, '超级管理员', 1, '', '', '超级管理员,不可删除,编辑', 0, now(), '', now());`
+	sql = `INSERT IGNORE INTO admin_user VALUES (1, 'admin', '21232f297a57a5a743894a0e4a801fc3', -1, -1, '超级管理员', 1, '', '', '超级管理员,不可删除,编辑', 0, now(), '', now());`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
+	sql = `CREATE TABLE  IF NOT EXISTS ex_agent_child   (
+			UserId int(11) NOT NULL COMMENT '代理id',
+			Child int(11) NOT NULL COMMENT '下级id',
+			Level int(11) NOT NULL COMMENT '下级层级,0直属下级,数值越大代理层级越深',
+			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '关系生成时间',
+			PRIMARY KEY (UserId) USING BTREE
+		) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_agent  (
+			UserId int(11) NOT NULL COMMENT '代理id',
+			PRIMARY KEY (UserId) USING BTREE
+			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+
+	sql = `CREATE TABLE IF NOT EXISTS ex_agent_dailly  (
+			UserId int(11) NOT NULL COMMENT '代理id',
+			PRIMARY KEY (UserId) USING BTREE
+			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_user_dailly  (
+			UserId int(11) NOT NULL COMMENT '代理id',
+			PRIMARY KEY (UserId) USING BTREE
+			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_user_data  (
+			UserId int(11) NOT NULL COMMENT '代理id',
+			PRIMARY KEY (UserId) USING BTREE
+			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	sql = `CREATE TABLE IF NOT EXISTS ex_agent_data  (
+			UserId int(11) NOT NULL COMMENT '代理id',
+			PRIMARY KEY (UserId) USING BTREE
+			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
+	sql = replace_sql(sql)
+	db.QueryNoResult(sql)
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	sql = `CREATE PROCEDURE ex_db_verify(p_Account VARCHAR(64),p_SellerId INT,p_UseType INT,p_VerifyCode VARCHAR(64),OUT p_Result INT)
 proc:BEGIN
 /*
