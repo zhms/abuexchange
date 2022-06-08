@@ -3,8 +3,8 @@ server:
     host: 127.0.0.1
     port: 6379
     password: Ho9mpyeqaILEOfjM
-    db: 0
-  symbols: [btc/usdt, eth/usdt] #, eth/usdt
+    db: 5
+  symbols: [btc/usdt, eth/usdt]
   marketurl: wss://stream.binance.com/stream
   futuresurl: wss://fstream.binance.com/stream
   marketklinegeturls: [https://api1.binance.com, https://api2.binance.com, https://api3.binance.com]

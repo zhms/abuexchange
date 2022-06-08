@@ -1,28 +1,28 @@
 package main
 
 import (
+	"exreptile/futures"
+	"exreptile/market"
 	"exreptile/reptile"
 	"fmt"
 	"math/rand"
 	"time"
 )
+
 func main() {
 	rand.Seed(time.Now().Unix())
 	reptile.ConfigInit()
 
-	go reptile.MarketKLine()
-	go reptile.FuturesKLine()
+	go futures.FuturesInfo()
+	go futures.FuturesKLine()
+	go futures.FuturesDepth()
+	go futures.FuturesTicker()
+	go futures.FuturesTrade()
 
-	go reptile.MarketTicker()
-	go reptile.FuturesTicker()
-
-	go reptile.MarketTrade()
-	go reptile.FuturesTrade()
-
-	go reptile.MarketDepth()
-	go reptile.FuturesDepth()
-
-	go reptile.FuturesInfo()
+	go market.MarketKLine()
+	go market.MarketDepth()
+	go market.MarketTicker()
+	go market.MarketTrade()
 
 	fmt.Println("******************start******************")
 	for {
