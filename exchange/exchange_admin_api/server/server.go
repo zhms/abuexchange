@@ -273,7 +273,6 @@ func set_auth(parent string, newdata map[string]interface{}, node map[string]int
 			if finded {
 				(*pn).(map[string]interface{})[k] = 1
 			}
-
 		} else {
 			set_auth(parent+"."+k, newdata, v.(map[string]interface{}))
 		}
