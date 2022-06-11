@@ -78,18 +78,25 @@ func (c *UserController) login_password(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
+	type ExtraData struct {
+		Ip string
+	}
+	extra := ExtraData{}
+	extra.Ip = ctx.GetIp()
+	strextra, _ := json.Marshal(&extra)
 	dbconn := server.Db().Conn()
-	queryresult, err := dbconn.Query("call ex_api_user_login_password(?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password)
+	queryresult, err := dbconn.Query("call ex_api_user_login_password(?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, string(strextra))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	queryresult.Next()
-	type ReturnData struct {
-	}
-	dbresult := ReturnData{}
-	dberr := abugo.GetDbResult(queryresult, &dbresult)
-	if ctx.RespDbErr(dberr) {
-		return
+	if queryresult.Next() {
+		type ReturnData struct {
+		}
+		dbresult := ReturnData{}
+		dberr := abugo.GetDbResult(queryresult, &dbresult)
+		if ctx.RespDbErr(dberr) {
+			return
+		}
 	}
 	queryresult.Close()
 	ctx.RespOK()
@@ -111,8 +118,14 @@ func (c *UserController) login_verifycode(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
+	type ExtraData struct {
+		Ip string
+	}
+	extra := ExtraData{}
+	extra.Ip = ctx.GetIp()
+	strextra, _ := json.Marshal(&extra)
 	dbconn := server.Db().Conn()
-	queryresult, err := dbconn.Query("call ex_api_user_login_verifycode(?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode)
+	queryresult, err := dbconn.Query("call ex_api_user_login_verifycode(?,?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(strextra))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}

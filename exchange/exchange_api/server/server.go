@@ -14,8 +14,8 @@ var websocket *abugo.AbuWebsocket
 var debug bool = false
 
 func Init() {
-	debug = viper.GetBool("server.debug")
 	abugo.Init()
+	debug = viper.GetBool("server.debug")
 	http = new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
 	redis = new(abugo.AbuRedis)

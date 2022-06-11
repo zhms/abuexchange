@@ -504,7 +504,7 @@ proc:BEGIN
 	ELSEIF @VerifyResult = 2 THEN
 		SELECT @ErrCode + 2 AS errcode, '验证码已过期' AS errmsg;
 		LEAVE proc;
-	ELSEIF @VerifyResult + 3 = 3 THEN
+	ELSEIF @VerifyResult = 3 THEN
 		SELECT @ErrCode AS errcode, '验证码不正确' AS errmsg;
 		LEAVE proc;
 	END IF;
