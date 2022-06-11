@@ -11,6 +11,8 @@ package abugo
 	go get github.com/gorilla/websocket
 	go get github.com/jinzhu/gorm
 	go get github.com/imroc/req
+	go get github.com/go-playground/validator/v10
+	go get github.com/go-playground/universal-translator
 */
 import (
 	"bytes"
@@ -46,6 +48,7 @@ import (
 	"github.com/beego/beego/logs"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
+	val "github.com/go-playground/validator/v10"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
@@ -227,7 +230,7 @@ func GetDbResult(rows *sql.Rows, ref interface{}) *AbuDbError {
 	err := json.Unmarshal(jdata, &abuerr)
 	if err != nil {
 		logs.Error(err)
-		return &AbuDbError{1, err.Error()}
+		return &AbuDbError{2, err.Error()}
 	}
 	if abuerr.ErrCode != 0 && len(abuerr.ErrMsg) > 0 {
 		return &abuerr
@@ -235,7 +238,7 @@ func GetDbResult(rows *sql.Rows, ref interface{}) *AbuDbError {
 	err = json.Unmarshal(jdata, ref)
 	if err != nil {
 		logs.Error(err)
-		return &AbuDbError{1, err.Error()}
+		return &AbuDbError{3, err.Error()}
 	}
 	return nil
 }
@@ -298,7 +301,10 @@ func abuhttpcors() gin.HandlerFunc {
 }
 
 func (c *AbuHttpContent) RequestData(obj interface{}) error {
-	return c.gin.ShouldBindJSON(obj)
+	c.gin.ShouldBindJSON(obj)
+	validator := val.New()
+	err := validator.Struct(obj)
+	return err
 }
 
 func (c *AbuHttpContent) Query(key string) string {
@@ -377,14 +383,46 @@ func (ctx *AbuHttpContent) RespOK(objects ...interface{}) {
 	ctx.gin.JSON(http.StatusOK, resp)
 }
 
-func (ctx *AbuHttpContent) RespErr(errcode int, errmsg string) {
-	resp := new(HttpResponse)
-	ctx.Put("errcode", errcode)
-	ctx.Put("errmsg", errmsg)
-	resp.Code = HTTP_RESPONSE_CODE_ERROR
-	resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
-	resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
-	ctx.gin.JSON(http.StatusOK, resp)
+func (ctx *AbuHttpContent) RespErr(err error, errcode *int) bool {
+	(*errcode)--
+	if err != nil {
+		resp := new(HttpResponse)
+		ctx.Put("errcode", errcode)
+		ctx.Put("errmsg", err.Error())
+		resp.Code = HTTP_RESPONSE_CODE_ERROR
+		resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
+		resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
+		ctx.gin.JSON(http.StatusOK, resp)
+	}
+	return err != nil
+}
+
+func (ctx *AbuHttpContent) RespDbErr(dberr *AbuDbError) bool {
+	if dberr != nil && dberr.ErrCode > 0 && len(dberr.ErrMsg) > 0 {
+		resp := new(HttpResponse)
+		ctx.Put("errcode", dberr.ErrCode)
+		ctx.Put("errmsg", dberr.ErrMsg)
+		resp.Code = HTTP_RESPONSE_CODE_ERROR
+		resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
+		resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
+		ctx.gin.JSON(http.StatusOK, resp)
+		return true
+	}
+	return false
+}
+
+func (ctx *AbuHttpContent) RespErrString(err bool, errcode *int, errmsg string) bool {
+	(*errcode)--
+	if err {
+		resp := new(HttpResponse)
+		ctx.Put("errcode", errcode)
+		ctx.Put("errmsg", errmsg)
+		resp.Code = HTTP_RESPONSE_CODE_ERROR
+		resp.Msg = HTTP_RESPONSE_CODE_ERROR_MESSAGE
+		resp.Data = ctx.gin.Keys[HTTP_SAVE_DATA_KEY]
+		ctx.gin.JSON(http.StatusOK, resp)
+	}
+	return err
 }
 
 func (ctx *AbuHttpContent) RespNoAuth(errcode int, errmsg string) {
@@ -659,6 +697,40 @@ func (c *AbuRedis) Expire(k string, to int) error {
 	return nil
 }
 
+func (c *AbuRedis) HSet(k string, f string, v interface{}) error {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	output, _ := json.Marshal(&v)
+	_, err := conn.Do("hset", k, f, string(output))
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (c *AbuRedis) HGet(k string, f string) interface{} {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	ret, err := conn.Do("hget", k, f)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	return ret
+}
+
+func (c *AbuRedis) HDel(k string, f string) error {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	_, err := conn.Do("hdel", k, f)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	return nil
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 //db
 /////////////////////////////////////////////////////////////////////////////////
@@ -920,36 +992,39 @@ func RsaSign(data interface{}, privatekey string) string {
 	privatekey = strings.Replace(privatekey, "-----END PRIVATE KEY-----", "", -1)
 	privatekey = strings.Replace(privatekey, "-----BEGIN RSA PRIVATE KEY-----", "", -1)
 	privatekey = strings.Replace(privatekey, "-----END RSA PRIVATE KEY-----", "", -1)
-	jbytes, _ := json.Marshal(&data)
-	jdata := make(map[string]interface{})
-	erra := json.Unmarshal(jbytes, &jdata)
-	if erra != nil {
-		logs.Error(erra)
-		return ""
-	}
+	t := reflect.TypeOf(data)
+	v := reflect.ValueOf(data)
 	keys := []string{}
-	for k := range jdata {
-		keys = append(keys, k)
+	for i := 0; i < t.NumField(); i++ {
+		fn := strings.ToLower(t.Field(i).Name)
+		if fn != "sign" {
+			keys = append(keys, t.Field(i).Name)
+		}
 	}
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i] < keys[j]
 	})
-	signstr := ""
+	var sb strings.Builder
 	for i := 0; i < len(keys); i++ {
-		if strings.ToLower(keys[i]) == "sign" {
-			continue
+		switch sv := v.FieldByName(keys[i]).Interface().(type) {
+		case string:
+			sb.WriteString(sv)
+		case int:
+			sb.WriteString(fmt.Sprint(sv))
+		case int8:
+			sb.WriteString(fmt.Sprint(sv))
+		case int16:
+			sb.WriteString(fmt.Sprint(sv))
+		case int32:
+			sb.WriteString(fmt.Sprint(sv))
+		case int64:
+			sb.WriteString(fmt.Sprint(sv))
+		case float32:
+			sb.WriteString(fmt.Sprint(sv))
+		case float64:
+			sb.WriteString(fmt.Sprint(sv))
 		}
-		if reflect.TypeOf(jdata[keys[i]]).Name() == "" {
-			d := jdata[keys[i]].([]interface{})
-			for j := 0; j < len(d); j++ {
-				signstr += fmt.Sprint(d[j])
-			}
-		} else {
-			signstr += fmt.Sprint(jdata[keys[i]])
-		}
-
 	}
-	fmt.Println(signstr)
 	privatekeybase64, errb := base64.StdEncoding.DecodeString(privatekey)
 	if errb != nil {
 		logs.Error(errb)
@@ -960,7 +1035,7 @@ func RsaSign(data interface{}, privatekey string) string {
 		logs.Error(errc)
 		return ""
 	}
-	hashmd5 := md5.Sum([]byte(signstr))
+	hashmd5 := md5.Sum([]byte(sb.String()))
 	hashed := hashmd5[:]
 	sign, errd := rsa.SignPKCS1v15(crand.Reader, privatekeyx509.(*rsa.PrivateKey), crypto.MD5, hashed)
 	if errd != nil {
@@ -970,40 +1045,45 @@ func RsaSign(data interface{}, privatekey string) string {
 	return base64.StdEncoding.EncodeToString(sign)
 }
 
-func RsaVerify(data interface{}, signedstr string, publickey string) bool {
+func RsaVerify(data interface{}, publickey string) bool {
 	publickey = strings.Replace(publickey, "-----BEGIN PUBLIC KEY-----", "", -1)
 	publickey = strings.Replace(publickey, "-----END PUBLIC KEY-----", "", -1)
 	publickey = strings.Replace(publickey, "-----BEGIN RSA PUBLIC KEY-----", "", -1)
 	publickey = strings.Replace(publickey, "-----END RSA PUBLIC KEY-----", "", -1)
-	jbytes, _ := json.Marshal(&data)
-	jdata := make(map[string]interface{})
-	erra := json.Unmarshal(jbytes, &jdata)
-	if erra != nil {
-		logs.Error(erra)
-		return false
-	}
+	t := reflect.TypeOf(data)
+	v := reflect.ValueOf(data)
 	keys := []string{}
-	for k := range jdata {
-		keys = append(keys, k)
+	for i := 0; i < t.NumField(); i++ {
+		fn := strings.ToLower(t.Field(i).Name)
+		if fn != "sign" {
+			keys = append(keys, t.Field(i).Name)
+		}
 	}
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i] < keys[j]
 	})
-	signstr := ""
+	var sb strings.Builder
 	for i := 0; i < len(keys); i++ {
-		if strings.ToLower(keys[i]) == "sign" {
-			continue
+		switch sv := v.FieldByName(keys[i]).Interface().(type) {
+		case string:
+			sb.WriteString(sv)
+		case int:
+			sb.WriteString(fmt.Sprint(sv))
+		case int8:
+			sb.WriteString(fmt.Sprint(sv))
+		case int16:
+			sb.WriteString(fmt.Sprint(sv))
+		case int32:
+			sb.WriteString(fmt.Sprint(sv))
+		case int64:
+			sb.WriteString(fmt.Sprint(sv))
+		case float32:
+			sb.WriteString(fmt.Sprint(sv))
+		case float64:
+			sb.WriteString(fmt.Sprint(sv))
 		}
-		if reflect.TypeOf(jdata[keys[i]]).Name() == "" {
-			d := jdata[keys[i]].([]interface{})
-			for j := 0; j < len(d); j++ {
-				signstr += fmt.Sprint(d[j])
-			}
-		} else {
-			signstr += fmt.Sprint(jdata[keys[i]])
-		}
-
 	}
+	signedstr := fmt.Sprint(v.FieldByName("Sign"))
 	publickeybase64, errb := base64.StdEncoding.DecodeString(publickey)
 	if errb != nil {
 		logs.Error(errb)
@@ -1015,7 +1095,7 @@ func RsaVerify(data interface{}, signedstr string, publickey string) bool {
 		return false
 	}
 	hash := md5.New()
-	hash.Write([]byte(signstr))
+	hash.Write([]byte(sb.String()))
 	signdata, _ := base64.StdEncoding.DecodeString(signedstr)
 	errd := rsa.VerifyPKCS1v15(publickeyx509.(*rsa.PublicKey), crypto.MD5, hash.Sum(nil), signdata)
 	return errd == nil
@@ -1178,9 +1258,10 @@ func TimeToUtc(timestr string) string {
 }
 
 type AbuWhere struct {
-	OrderBy string
-	sql     string
-	Params  []interface{}
+	OrderKey string
+	OrderBy  string
+	sql      string
+	Params   []interface{}
 }
 
 func (c *AbuWhere) Clean() {
@@ -1200,6 +1281,7 @@ func (c *AbuWhere) AddInt(o string, f string, v int, iv int) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1216,6 +1298,7 @@ func (c *AbuWhere) AddInt32(o string, f string, v int32, iv int32) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1232,6 +1315,7 @@ func (c *AbuWhere) AddInt64(o string, f string, v int64, iv int64) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1248,6 +1332,7 @@ func (c *AbuWhere) AddString(o string, f string, v string, iv string) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1264,6 +1349,7 @@ func (c *AbuWhere) AddFloat32(o string, f string, v float32, iv float32) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1280,6 +1366,7 @@ func (c *AbuWhere) AddFloat64(o string, f string, v float64, iv float64) {
 		c.sql += "where "
 	}
 	if c.sql != "where " {
+		c.sql += " "
 		c.sql += o
 	}
 	c.sql += " "
@@ -1292,18 +1379,24 @@ func (c *AbuWhere) Sql(table string, page int, pagesize int) string {
 	if len(c.OrderBy) == 0 {
 		c.OrderBy = "DESC"
 	}
+	if len(c.OrderKey) == 0 {
+		c.OrderKey = "Id"
+	}
 	if strings.ToUpper(c.OrderBy) == "DESC" {
-		sql := fmt.Sprintf("SELECT * FROM %s WHERE id <= (SELECT id FROM %s %s ORDER BY id %s LIMIT %d,1) %s ORDER BY id %s LIMIT %d", table, table, c.sql, c.OrderBy, (page-1)*pagesize, strings.Replace(c.sql, "where", "and", -1), c.OrderBy, pagesize)
+		sql := fmt.Sprintf("SELECT * FROM %s WHERE %s <= (SELECT %s FROM %s %s ORDER BY %s %s LIMIT %d,1) %s ORDER BY %s %s LIMIT %d", table, c.OrderKey, c.OrderKey, table, c.sql, c.OrderKey, c.OrderBy, (page-1)*pagesize, strings.Replace(c.sql, "where", "and", -1), c.OrderKey, c.OrderBy, pagesize)
 		return sql
 	} else {
 		c.OrderBy = "ASC"
-		sql := fmt.Sprintf("SELECT * FROM %s WHERE id >= (SELECT id FROM %s %s ORDER BY id %s LIMIT %d,1) %s ORDER BY id %s LIMIT %d", table, table, c.sql, c.OrderBy, (page-1)*pagesize, strings.Replace(c.sql, "where", "and", -1), c.OrderBy, pagesize)
+		sql := fmt.Sprintf("SELECT * FROM %s WHERE %s >= (SELECT %s FROM %s %s ORDER BY %s %s LIMIT %d,1) %s ORDER BY %s %s LIMIT %d", table, c.OrderKey, c.OrderKey, table, c.sql, c.OrderKey, c.OrderBy, (page-1)*pagesize, strings.Replace(c.sql, "where", "and", -1), c.OrderKey, c.OrderBy, pagesize)
 		return sql
 	}
 }
 
 func (c *AbuWhere) CountSql(table string) string {
-	sql := fmt.Sprintf("select count(id) as count from %s %s", table, c.sql)
+	if len(c.OrderKey) == 0 {
+		c.OrderKey = "Id"
+	}
+	sql := fmt.Sprintf("select count(%s) as count from %s %s", c.OrderKey, table, c.sql)
 	return sql
 }
 
@@ -1313,4 +1406,3 @@ func (c *AbuWhere) GetParams() []interface{} {
 	params = append(params, c.Params...)
 	return params
 }
-

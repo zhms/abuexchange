@@ -164,7 +164,7 @@ func SetupDatabase() {
 			NickName varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '昵称',
 			PhoneNum varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '绑定手机',
 			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '登录token',
-			Agents varchar(10240) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'json数组,所有上级id,下标0是顶级代理,越往后,代理等级越低',
+			Agents varchar(10240) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'json数组,所有上级id,下标0是直属代理,越往后,代理等级越高',
 			TopAgentId int(11) NULL DEFAULT NULL COMMENT '顶级代理id',
 			AgentId int(11) NULL DEFAULT NULL COMMENT '直属代理',
 			RegisterIp varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '注册ip',
@@ -416,24 +416,44 @@ proc:BEGIN
 	ELSE
 		SET @PhoneNum = p_Account;
 	END IF;
+	#DELETE FROM ex_user WHERE Account = p_Account;
 	IF EXISTS(SELECT UserId FROM ex_user WHERE Account = p_Account) THEN
 		SELECT @ErrCode AS errcode,'账号已经存在' AS errmsg;
 		LEAVE proc;
 	END IF;
 	SET @ErrCode = @ErrCode + 1;
+	IF p_ExtraData = NULL OR LENGTH(p_ExtraData) = 0 THEN
+		SET p_ExtraData = '{}';
+	END IF;
+	SET @Ip = JSON_UNQUOTE(JSON_EXTRACT(p_ExtraData,'$.Ip'));
+	SET @AgentId = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_ExtraData,'$.AgentId')) AS UNSIGNED);
+	SET @Agents = NULL;
+	SET @TopAgent = NULL;
+	IF @AgentId > 0 THEN
+		SELECT Agents INTO @Agents FROM ex_user WHERE UserId = @AgentId;
+		IF FOUND_ROWS() = 0 THEN
+			SELECT @ErrCode AS errcode,'代理不存在' AS errmsg;
+			LEAVE proc;
+		END IF;
+		IF @Agents IS NULL THEN
+			SET @Agents = '[]';
+		END IF;
+		SET @Agents = JSON_ARRAY_INSERT(@Agents, '$[0]', @AgentId);
+		SET @TopAgent = JSON_EXTRACT(@Agents, CONCAT('$[',JSON_LENGTH(@Agents) - 1,']'));
+	END IF;
 	SET @VerifyResult = 0;
 	CALL ex_db_verify(p_Account,p_SellerId,1,p_VerifyCode,@VerifyResult);
 	IF @VerifyResult = 1 THEN
-		SELECT @ErrCode + 1 AS errcode, '验证码不存在' AS errmsg;
+		SELECT @ErrCode + 0 AS errcode, '验证码不存在' AS errmsg;
 		LEAVE proc;
 	ELSEIF @VerifyResult = 2 THEN
-		SELECT @ErrCode + 2 AS errcode, '验证码已过期' AS errmsg;
+		SELECT @ErrCode + 1 AS errcode, '验证码已过期' AS errmsg;
 		LEAVE proc;
 	ELSEIF @VerifyResult = 3 THEN
-		SELECT @ErrCode + 3 AS errcode, '验证码不正确' AS errmsg;
+		SELECT @ErrCode + 2 AS errcode, '验证码不正确' AS errmsg;
 		LEAVE proc;
 	END IF;
-	SET @ErrCode = @ErrCode + 1;
+	SET @ErrCode = @ErrCode + 3;
 	SET @UserId = 0;
 	CALL ex_db_get_userid(@UserId);
 	IF @UserId = 0 THEN
@@ -441,12 +461,8 @@ proc:BEGIN
 		LEAVE proc;
 	END IF;
 	SET @ErrCode = @ErrCode + 1;
-	IF p_ExtraData = NULL OR LENGTH(p_ExtraData) = 0 THEN
-		SET p_ExtraData = '{}';
-	END IF;
-	SET @Ip = JSON_UNQUOTE(JSON_EXTRACT(p_ExtraData,'$.ip'));
-	INSERT INTO ex_user(UserId,SellerId,Account,2416796325297210Password2416796325297210,Email,PhoneNum,NickName,RegisterIp)
-	VALUES(@UserId,p_SellerId,p_Account,p_Password,@Email,@PhoneNum,CONCAT(@UserId),@Ip);
+	INSERT INTO ex_user(UserId,SellerId,Account,2416796325297210Password2416796325297210,Email,PhoneNum,NickName,RegisterIp,Agents,TopAgentId,AgentId)
+	VALUES(@UserId,p_SellerId,p_Account,p_Password,@Email,@PhoneNum,CONCAT(@UserId),@Ip,@Agents,@TopAgent,@AgentId);
 	SELECT @UserId AS UserId;
 END`
 	sql = replace_sql(sql)

@@ -7,16 +7,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-var http* abugo.AbuHttp
-var redis* abugo.AbuRedis
+var http *abugo.AbuHttp
+var redis *abugo.AbuRedis
 var db *abugo.AbuDb
-var websocket * abugo.AbuWebsocket
+var websocket *abugo.AbuWebsocket
 var debug bool = false
 
 func Init() {
 	debug = viper.GetBool("server.debug")
 	abugo.Init()
-	http =  new(abugo.AbuHttp)
+	http = new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
 	redis = new(abugo.AbuRedis)
 	redis.Init("server.redis")
@@ -28,31 +28,30 @@ func Http() *abugo.AbuHttp {
 	return http
 }
 
-func Redis() *abugo.AbuRedis{
+func Redis() *abugo.AbuRedis {
 	return redis
 }
 
-func Db() *abugo.AbuDb{
+func Db() *abugo.AbuDb {
 	return db
 }
 
-func Debug() bool{
+func Debug() bool {
 	return debug
 }
 
-func Run(){
+func Run() {
 	abugo.Run()
 }
 
-
-type TokenData struct{
-	UserId int
+type TokenData struct {
+	UserId   int
 	SellerId int
 }
 
-func GetToken(ctx *abugo.AbuHttpContent) *TokenData{
+func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 	td := TokenData{}
-	err:= json.Unmarshal([]byte(ctx.TokenData),&td)
+	err := json.Unmarshal([]byte(ctx.TokenData), &td)
 	if err != nil {
 		return nil
 	}

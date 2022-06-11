@@ -19,7 +19,7 @@
 			<el-table :data="table_data" border max-height="620px" class="table" :cell-style="{ padding: '0' }">
 				<el-table-column align="center" prop="Id" label="id" width="80"></el-table-column>
 				<el-table-column align="center" prop="UserId" label="玩家id" width="100"></el-table-column>
-				<el-table-column align="center" prop="Account" label="账号" width="120"></el-table-column>
+				<el-table-column align="center" prop="Account" label="账号" width="220"></el-table-column>
 				<el-table-column align="center" label="昵称" width="130">
 					<template slot-scope="scope">
 						<span style="cursor: pointer; color: rgb(64, 158, 255)" @click="handleLook(scope.$index)">{{ table_data[scope.$index].NickName }}</span>
@@ -57,7 +57,7 @@
 									<el-form-item label="登录次数:" style="width: 300px; margin-top: -15px">{{ dialog_data.LoginCount }}</el-form-item>
 								</el-form>
 								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
-									<el-form-item label="账号:" style="width: 200px; margin-top: -15px">{{ dialog_data.Account }}</el-form-item>
+									<el-form-item label="账号:" style="width: 250px; margin-top: -15px">{{ dialog_data.Account }}</el-form-item>
 									<el-form-item label="测试:" v-bind:class="dialog_data.IsTester ? 'red' : ''" style="width: 200px; margin-top: -15px">{{ dialog_data.IsTester == 0 ? '否' : '是' }}</el-form-item>
 								</el-form>
 								<el-form :inline="true" label-width="130px" style="margin-left: 50px">
