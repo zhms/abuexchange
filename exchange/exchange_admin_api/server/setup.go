@@ -254,11 +254,14 @@ func SetupDatabase() {
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE  IF NOT EXISTS ex_agent_child   (
-			UserId int(11) NOT NULL COMMENT '代理id',
+		  	UserId int(11) NOT NULL COMMENT '代理id',
 			Child int(11) NOT NULL COMMENT '下级id',
-			Level int(11) NOT NULL COMMENT '下级层级,0直属下级,数值越大代理层级越深',
+			ChildLevel int(11) NOT NULL COMMENT '下级层级,0直属下级,数值越大代理层级越深',
+			DataState int(255) NOT NULL DEFAULT 0 COMMENT '数据统计状态',
 			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '关系生成时间',
-			PRIMARY KEY (UserId) USING BTREE
+			PRIMARY KEY (UserId, Child, ChildLevel) USING BTREE,
+			INDEX DataState(DataState) USING BTREE,
+			UNIQUE INDEX UserIDChild(UserId, Child) USING BTREE
 		) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
@@ -268,26 +271,21 @@ func SetupDatabase() {
 			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-
 	sql = `CREATE TABLE IF NOT EXISTS ex_agent_dailly  (
-			UserId int(11) NOT NULL COMMENT '代理id',
-			PRIMARY KEY (UserId) USING BTREE
+			  	UserId int(11) NOT NULL COMMENT '代理id',
+				RecordDate date NOT NULL,
+				PRIMARY KEY (UserId, RecordDate) USING BTREE
 			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE IF NOT EXISTS ex_user_dailly  (
-			UserId int(11) NOT NULL COMMENT '代理id',
-			PRIMARY KEY (UserId) USING BTREE
+				UserId int(11) NOT NULL COMMENT '代理id',
+				RecordDate date NOT NULL,
+				PRIMARY KEY (UserId, RecordDate) USING BTREE
 			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = `CREATE TABLE IF NOT EXISTS ex_user_data  (
-			UserId int(11) NOT NULL COMMENT '代理id',
-			PRIMARY KEY (UserId) USING BTREE
-			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
-	sql = replace_sql(sql)
-	db.QueryNoResult(sql)
-	sql = `CREATE TABLE IF NOT EXISTS ex_agent_data  (
+	sql = `CREATE TABLE IF NOT EXISTS ex_user_extra  (
 			UserId int(11) NOT NULL COMMENT '代理id',
 			PRIMARY KEY (UserId) USING BTREE
 			) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Fixed;`
@@ -461,8 +459,16 @@ proc:BEGIN
 		LEAVE proc;
 	END IF;
 	SET @ErrCode = @ErrCode + 1;
-	INSERT INTO ex_user(UserId,SellerId,Account,2416796325297210Password2416796325297210,Email,PhoneNum,NickName,RegisterIp,Agents,TopAgentId,AgentId)
-	VALUES(@UserId,p_SellerId,p_Account,p_Password,@Email,@PhoneNum,CONCAT(@UserId),@Ip,@Agents,@TopAgent,@AgentId);
+	START TRANSACTION;
+		INSERT INTO ex_user(UserId,SellerId,Account,2416796325297210Password2416796325297210,Email,PhoneNum,NickName,RegisterIp,Agents,TopAgentId,AgentId)
+		VALUES(@UserId,p_SellerId,p_Account,p_Password,@Email,@PhoneNum,CONCAT(@UserId),@Ip,@Agents,@TopAgent,@AgentId);
+		SET @ChildLevel = JSON_LENGTH(@Agents) - 1;
+		WHILE @ChildLevel >= 0 DO
+			SET @Parentid = JSON_EXTRACT(@Agents, CONCAT('$[',@ChildLevel,']'));
+			INSERT INTO ex_agent_child(UserId,Child,ChildLevel)VALUES(@Parentid,@UserId,@ChildLevel);
+			SET @ChildLevel = @ChildLevel - 1;
+		END WHILE;
+	COMMIT;
 	SELECT @UserId AS UserId;
 END`
 	sql = replace_sql(sql)
@@ -866,6 +872,137 @@ proc:BEGIN
 	INSERT INTO ex_user(UserId,SellerId,Account,ThirdId,2416796325297210Password2416796325297210,NickName)
 	VALUES(@UserId,p_SellerId,p_ThirdId,p_ThirdId,p_Password,CONCAT(@UserId));
 	SELECT @UserId AS UserId;
+END`
+	sql = replace_sql(sql)
+	_, err = Db().Conn().Exec(sql)
+	if err != nil && strings.Index(err.Error(), "1304") <= 0 {
+		fmt.Println(err)
+	}
+	sql = `CREATE PROCEDURE ex_api_agent_bind(p_Agent INT,p_Child INT)
+proc:BEGIN
+	DECLARE p_ChildChild INT;
+	DECLARE cursor_done INT DEFAULT false;
+	DECLARE cursor_child CURSOR FOR SELECT Child FROM ex_agent_child WHERE UserId = p_Child;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET cursor_done = true;
+	##############################################################################################
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1	@errcode = MYSQL_ERRNO, @errmsg = MESSAGE_TEXT;
+		ROLLBACK;
+		INSERT INTO ex_error(FunName,ErrCode,ErrMsg)VALUES('ex_api_agent_bind',@errcode,@errmsg);
+		SELECT @errcode AS errcode,@errmsg AS errmsg;
+	END;
+	##############################################################################################
+	SET @ErrCode = 10;
+	IF NOT EXISTS(SELECT UserId from ex_user WHERE UserId = p_Agent) THEN
+		SELECT @ErrCode AS errcode,"上级不存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	SET @Agents = NULL;
+	SET @AgentId = NULL;
+	SET @TopAgentId = NULL;
+	SELECT Agents,AgentId,TopAgentId INTO @Agents,@AgentId,@TopAgentId FROM ex_user WHERE UserId = p_Child;
+	IF FOUND_ROWS() = 0 THEN
+		SELECT @ErrCode AS errcode,"下级不存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF @AgentId = p_Agent THEN
+		SELECT @ErrCode AS errcode,"代理关系已存在" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	IF @Agents IS NULL THEN
+		SET @Agents = '[]';
+	END IF;
+	SET @ErrMsg = NULL;
+	IF EXISTS(SELECT UserId FROM ex_agent_child WHERE UserId = p_Child AND Child = p_Agent) THEN
+		SELECT @ErrCode AS errcode,"不可绑定自己的下级为代理" AS errmsg;
+		LEAVE proc;
+	END IF;
+	SET @ErrCode = @ErrCode + 1;
+	START TRANSACTION;
+		SET @Childs = '[]';
+		OPEN cursor_child;
+		cursor_loop: LOOP
+			FETCH cursor_child INTO p_ChildChild;
+			IF cursor_done THEN
+				SET cursor_done = FALSE;
+				LEAVE cursor_loop;
+			END IF;
+			SET @Childs = JSON_ARRAY_APPEND(@Childs, '$',p_ChildChild);
+		END LOOP cursor_loop;
+		CLOSE cursor_child;
+		SET @ChildIncludeSelf = JSON_ARRAY_APPEND(@Childs, '$',p_Child);
+		#删除上级的下级
+		SET @AgentIndex = 0;
+		WHILE @AgentIndex < JSON_LENGTH(@Agents) DO
+			SET @ChildIndex = 0;
+			WHILE @ChildIndex < JSON_LENGTH(@ChildIncludeSelf) DO
+				SET @AgentId = JSON_EXTRACT(@Agents, CONCAT('$[',@AgentIndex,']'));
+				SET @ChildId = JSON_EXTRACT(@ChildIncludeSelf, CONCAT('$[',@ChildIndex,']'));
+				DELETE FROM ex_agent_child WHERE UserId = @AgentId AND Child = @ChildId AND DataState = 0;
+				UPDATE ex_agent_child SET DataState = -1  WHERE UserId = @AgentId AND Child = @ChildId AND DataState <> 0;
+				SET @ChildIndex = @ChildIndex + 1;
+			END WHILE;
+			SET @AgentIndex = @AgentIndex + 1;
+		END WHILE;
+		#删除下级的上级
+		SET @ChildIndex = 0;
+		WHILE @ChildIndex < JSON_LENGTH(@Childs) DO
+			SET @ChildId = JSON_EXTRACT(@Childs, CONCAT('$[',@ChildIndex,']'));
+			SET @ChildAgents = NULL;
+			SELECT Agents INTO @ChildAgents FROM ex_user WHERE UserId = @ChildId;
+			SET @NewAgents = '[]';
+			SET @NewIndex = 0;
+			WHILE @NewIndex < (JSON_LENGTH(@ChildAgents) - JSON_LENGTH(@Agents)) DO
+				SET @NewAgents = JSON_ARRAY_APPEND(@NewAgents, '$', JSON_EXTRACT(@ChildAgents, CONCAT('$[',@NewIndex,']')));
+				SET @NewIndex = @NewIndex + 1;
+			END WHILE;
+			UPDATE ex_user SET Agents = @NewAgents WHERE UserId = @ChildId;
+			SET @ChildIndex = @ChildIndex + 1;
+		END WHILE;
+		UPDATE ex_user SET Agents = NULL WHERE UserId = p_Child;
+		SET @Agents = NULL;
+		SELECT Agents INTO @Agents FROM ex_user WHERE UserId = p_Agent;
+		IF @Agents IS NULL THEN
+			SET @Agents = '[]';
+		END IF;
+		#建立下级的上级关系
+		SET @Agents = JSON_ARRAY_INSERT(@Agents, '$[0]',p_Agent);
+		UPDATE ex_user SET Agents = @Agents WHERE UserId = p_Child;
+		SET @ChildIndex = 0;
+		WHILE @ChildIndex < JSON_LENGTH(@Childs) DO
+			SET @ChildAgents = NULL;
+			SET @ChildId = JSON_EXTRACT(@Childs, CONCAT('$[',@ChildIndex,']'));
+			SELECT Agents INTO @ChildAgents FROM ex_user WHERE UserId = @ChildId;
+			SET @AgentIndex = 0;
+			WHILE  @AgentIndex <JSON_LENGTH(@Agents) DO
+				SET @ChildAgents = JSON_ARRAY_APPEND(@ChildAgents, '$', JSON_EXTRACT(@Agents, CONCAT('$[',@AgentIndex,']')));
+				SET @AgentIndex  = @AgentIndex + 1;
+			END WHILE;
+			UPDATE ex_user SET Agents = @ChildAgents WHERE UserId = @ChildId;
+			SET @ChildIndex = @ChildIndex + 1;
+		END WHILE;
+		#建立上级的下级关系
+		SET @ChildIndex = 0;
+		WHILE @ChildIndex <  JSON_LENGTH(@ChildIncludeSelf) DO
+			SET @Agents = NULL;
+			SET @ChildId = JSON_EXTRACT(@ChildIncludeSelf, CONCAT('$[',@ChildIndex,']'));
+			SELECT Agents INTO @Agents FROM ex_user WHERE UserId = @ChildId;
+			SET @TopAgentId = JSON_EXTRACT(@Agents, CONCAT('$[',JSON_LENGTH(@Agents) - 1,']'));
+			SET @AgentId = JSON_EXTRACT(@Agents,'$[0]');
+			UPDATE ex_user SET TopAgentId = @TopAgentId,AgentId = @AgentId WHERE UserId = @ChildId;
+			SET @AgentIndex = 0;
+			WHILE @AgentIndex < JSON_LENGTH(@Agents) DO
+				SET @AgentId = JSON_EXTRACT(@Agents, CONCAT('$[',@AgentIndex,']'));
+				INSERT IGNORE INTO ex_agent_child(UserId,Child,ChildLevel)VALUES(@AgentId,@ChildId,@AgentIndex);
+				SET @AgentIndex = @AgentIndex + 1;
+			END WHILE;
+			SET @ChildIndex = @ChildIndex + 1;
+		END WHILE;
+	COMMIT;
 END`
 	sql = replace_sql(sql)
 	_, err = Db().Conn().Exec(sql)
